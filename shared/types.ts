@@ -92,3 +92,36 @@ export interface ParticipationRow {
   declined: number;
   total: number;
 }
+
+export interface PlaylistSummary {
+  id: number;
+  event_id: number;
+  created_at: string;
+  title: string;
+  event_date: string;
+  location: string | null;
+  song_count: number;
+}
+
+export interface PlaylistEvent {
+  id: number;
+  title: string;
+  event_date: string;
+  location: string | null;
+}
+
+export interface PlaylistSong {
+  id: number;
+  playlist_id: number;
+  title: string;
+  key: string | null;
+  youtube_url: string;
+  note: string | null;
+  position: number;
+}
+
+export interface PlaylistDetail {
+  event: PlaylistEvent;
+  playlist: { id: number; event_id: number; created_by: number; created_at: string } | null;
+  songs: PlaylistSong[];
+}
