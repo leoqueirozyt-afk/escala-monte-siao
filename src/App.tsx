@@ -11,6 +11,7 @@ import { MinistriesPage } from "./pages/MinistriesPage";
 import { SwapsPage } from "./pages/SwapsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { PlaylistsPage } from "./pages/PlaylistsPage";
+import { PlaylistDetailPage } from "./pages/PlaylistDetailPage";
 
 function Loading() {
   return (
@@ -98,6 +99,14 @@ export default function App() {
                   element={
                     <LouvorOnly>
                       <PlaylistsPage />
+                    </LouvorOnly>
+                  }
+                />
+                <Route
+                  path="/playlists/:eventId"
+                  element={
+                    <LouvorOnly>
+                      <PlaylistDetailPage />
                     </LouvorOnly>
                   }
                 />
