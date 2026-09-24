@@ -1,0 +1,289 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T12:00:00.000Z",
+  "title": "Design System: Escala Monte Sião",
+  "extensions": {
+    "colorMeta": {
+      "cross-red": {
+        "role": "primary",
+        "displayName": "Vermelho Cruz",
+        "canonical": "#C8102E",
+        "tonalRamp": ["#4A0611", "#7A0C1F", "#9A0D22", "#C8102E", "#D9455E", "#E87A8C", "#F3B0BB", "#FBE8EC"]
+      },
+      "cross-red-deep": {
+        "role": "primary",
+        "displayName": "Vermelho Cruz Profundo",
+        "canonical": "#7A0C1F",
+        "tonalRamp": ["#2E040A", "#4A0611", "#7A0C1F", "#9A0D22", "#B81230", "#C8102E", "#D9455E", "#F3B0BB"]
+      },
+      "mountain-bronze": {
+        "role": "secondary",
+        "displayName": "Bronze Monte",
+        "canonical": "#8C6239",
+        "tonalRamp": ["#2A1C10", "#4A321C", "#6B4A28", "#8C6239", "#A87D52", "#C49A72", "#DDBA96", "#F2E2CE"]
+      },
+      "mountain-bronze-deep": {
+        "role": "secondary",
+        "displayName": "Bronze Monte Profundo",
+        "canonical": "#6B4A28",
+        "tonalRamp": ["#1F140A", "#3A2614", "#5A3D20", "#6B4A28", "#8C6239", "#A87D52", "#C49A72", "#E8D4BC"]
+      },
+      "brand-ink": {
+        "role": "neutral",
+        "displayName": "Tinta da Marca",
+        "canonical": "#1A1A1A",
+        "tonalRamp": ["#000000", "#0D0D0D", "#1A1A1A", "#2E2E2E", "#4A4A4A", "#6B6B6B", "#9A9A9A", "#D4D4D4"]
+      },
+      "primary": {
+        "role": "primary",
+        "displayName": "Vermelho Cruz App",
+        "canonical": "#C8102E",
+        "tonalRamp": ["#4A0611", "#7A0C1F", "#9A0D22", "#C8102E", "#D9455E", "#E87A8C", "#F3B0BB", "#FBE8EC"]
+      },
+      "primary-dark": {
+        "role": "primary",
+        "displayName": "Vermelho Cruz App (dark)",
+        "canonical": "#E03A52",
+        "tonalRamp": ["#7A0C1F", "#9A0D22", "#C8102E", "#E03A52", "#E85A70", "#F08A9A", "#F7B8C4", "#FDE8EC"]
+      },
+      "background": {
+        "role": "neutral",
+        "displayName": "Fundo App",
+        "canonical": "#FAF8F6",
+        "tonalRamp": ["#1A1614", "#3A3430", "#6B635C", "#A8A09A", "#DFD9D4", "#F0ECE8", "#F7F4F1", "#FAF8F6"]
+      },
+      "background-dark": {
+        "role": "neutral",
+        "displayName": "Fundo App (dark)",
+        "canonical": "#141110",
+        "tonalRamp": ["#0A0807", "#141110", "#1C1917", "#242020", "#3A3432", "#6B635C", "#A09890", "#ECE8E4"]
+      },
+      "foreground": {
+        "role": "neutral",
+        "displayName": "Texto Principal",
+        "canonical": "#1A1A1A",
+        "tonalRamp": ["#000000", "#0D0D0D", "#1A1A1A", "#2E2E2E", "#4A4A4A", "#6B6B6B", "#9A9A9A", "#D4D4D4"]
+      },
+      "foreground-dark": {
+        "role": "neutral",
+        "displayName": "Texto Principal (dark)",
+        "canonical": "#F5F0EC",
+        "tonalRamp": ["#1A1614", "#3A3432", "#6B635C", "#9A928C", "#C5BEB8", "#E0DBD6", "#F0ECE8", "#F5F0EC"]
+      },
+      "card": {
+        "role": "neutral",
+        "displayName": "Card",
+        "canonical": "#FFFFFF",
+        "tonalRamp": ["#1A1614", "#3A3432", "#6B635C", "#A8A09A", "#DFD9D4", "#F0ECE8", "#FAFAFB", "#FFFFFF"]
+      },
+      "card-dark": {
+        "role": "neutral",
+        "displayName": "Card (dark)",
+        "canonical": "#1C1917",
+        "tonalRamp": ["#0A0807", "#141110", "#1C1917", "#242020", "#2E2926", "#3A3432", "#6B635C", "#9A928C"]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#ECE8E4",
+        "tonalRamp": ["#1A1614", "#3A3432", "#6B635C", "#A8A09A", "#DFD9D4", "#ECE8E4", "#F4F1EE", "#FAFAFA"]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Muted (dark)",
+        "canonical": "#2E2926",
+        "tonalRamp": ["#0A0807", "#141110", "#1C1917", "#242020", "#2E2926", "#3A3432", "#6B635C", "#9A928C"]
+      },
+      "muted-foreground": {
+        "role": "neutral",
+        "displayName": "Texto Secundário",
+        "canonical": "#6B635C",
+        "tonalRamp": ["#1A1614", "#2A2624", "#4A4440", "#6B635C", "#7A736E", "#9A928C", "#C0B8B2", "#E8E4E0"]
+      },
+      "muted-foreground-dark": {
+        "role": "neutral",
+        "displayName": "Texto Secundário (dark)",
+        "canonical": "#9A928C",
+        "tonalRamp": ["#2E2926", "#3A3432", "#6B635C", "#9A928C", "#A8A09A", "#C0B8B2", "#D8D2CE", "#ECE8E4"]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Borda",
+        "canonical": "#DFD9D4",
+        "tonalRamp": ["#1A1614", "#3A3432", "#6B635C", "#A8A09A", "#DFD9D4", "#ECE8E4", "#F4F1EE", "#FFFFFF"]
+      },
+      "border-dark": {
+        "role": "neutral",
+        "displayName": "Borda (dark)",
+        "canonical": "#3A3432",
+        "tonalRamp": ["#0A0807", "#141110", "#1C1917", "#242020", "#3A3432", "#4A4440", "#6B635C", "#9A928C"]
+      },
+      "success": {
+        "role": "semantic",
+        "displayName": "Sucesso",
+        "canonical": "#25984D",
+        "tonalRamp": ["#0A2E18", "#0F4A28", "#176B38", "#25984D", "#45B86A", "#72D090", "#A5E4B5", "#DFF5E8"]
+      },
+      "warning": {
+        "role": "semantic",
+        "displayName": "Aviso",
+        "canonical": "#D9A514",
+        "tonalRamp": ["#3A2C04", "#6B5208", "#A07C0E", "#D9A514", "#E4B83A", "#EECD6A", "#F5DF9A", "#FBF2D5"]
+      },
+      "destructive": {
+        "role": "semantic",
+        "displayName": "Destrutivo",
+        "canonical": "#CC272E",
+        "tonalRamp": ["#3A0A0C", "#6B1418", "#9A1E24", "#CC272E", "#D9455E", "#E87A8C", "#F3B0BB", "#FBE8EC"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Título do login apenas; fora do auth usar headline."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "H1 de página autenticada."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "CardTitle e destaque de evento."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prosa, listas, erros; 65–75ch em parágrafos."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Labels de campo, nav, botões."
+      }
+    },
+    "shadows": [
+      { "name": "surface-rest", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Cards e inputs em repouso (shadow-sm)." },
+      { "name": "toast", "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)", "purpose": "Toasts flutuantes no topo." },
+      { "name": "dialog", "value": "0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)", "purpose": "Modal e sheet sobre backdrop." },
+      { "name": "login-card", "value": "0 24px 64px -24px rgba(26,26,26,0.22)", "purpose": "Card de autenticação sobre gradiente de marca." },
+      { "name": "brand-mark", "value": "0 8px 20px -6px rgba(26,26,26,0.35)", "purpose": "Disco branco do ChurchMark SVG." },
+      { "name": "commit-glow", "value": "0 12px 28px -10px rgba(200,16,46,0.6)", "purpose": "Exclusivo do botão ENTRAR no login." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Transições de estado (150–250ms)." },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Entradas de toast e feedback curto." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ação principal no app logado (vermelho da cruz).",
+      "html": "<button class=\"ds-btn-primary\">Salvar escala</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 44px; padding: 0 16px; border: none; border-radius: 12px; background: var(--primary, #C8102E); color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 500; line-height: 1.2; cursor: pointer; box-shadow: 0 1px 2px rgba(26,26,26,0.08); transition: filter 150ms cubic-bezier(0.4,0,0.2,1), transform 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { filter: brightness(1.05); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #C8102E; } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; } @media (prefers-reduced-motion: reduce) { .ds-btn-primary { transition: none; } .ds-btn-primary:active { transform: none; } }"
+    },
+    {
+      "name": "Brand Commit Button",
+      "kind": "button",
+      "refersTo": "button-brand-commit",
+      "description": "CTA ENTRAR no login: gradiente vermelho da cruz.",
+      "html": "<button class=\"ds-btn-brand\">ENTRAR</button>",
+      "css": ".ds-btn-brand { display: inline-flex; align-items: center; justify-content: center; width: 100%; height: 48px; padding: 0 24px; border: none; border-radius: 12px; background: linear-gradient(90deg, #C8102E 0%, #9A0D22 55%, #7A0C1F 100%); color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer; box-shadow: 0 12px 28px -10px rgba(200,16,46,0.6); transition: filter 200ms cubic-bezier(0.4,0,0.2,1), transform 150ms; } .ds-btn-brand:hover { filter: brightness(1.05); } .ds-btn-brand:focus-visible { outline: none; box-shadow: 0 0 0 2px #fff, 0 0 0 4px #C8102E; } .ds-btn-brand:active { transform: scale(0.98); }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulário padrão com label associado.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">E-mail ou Telefone</span><input class=\"ds-input\" type=\"text\" placeholder=\"voce@montesiao.org\" /></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; } .ds-field-label { font-size: 14px; font-weight: 500; line-height: 1.2; color: #151B24; } .ds-input { height: 44px; width: 100%; padding: 0 12px; border: 1px solid #DFE1E5; border-radius: 12px; background: #FFFFFF; color: #151B24; font-size: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); } .ds-input::placeholder { color: #606369; } .ds-input:focus-visible { outline: none; box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #C8102E; } .ds-input:disabled { opacity: 0.5; }"
+    },
+    {
+      "name": "Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Superfícies de conteúdo e listas.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-header\"><p class=\"ds-card-title\">Culto de Domingo</p><p class=\"ds-card-desc\">Próxima escala da semana</p></div><div class=\"ds-card-body\"><p>Conteúdo em text-sm…</p></div></div>",
+      "css": ".ds-card { background: #FFFFFF; color: #151B24; border: 1px solid #DFE1E5; border-radius: 16px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; } .ds-card-header { padding: 16px 16px 8px; } .ds-card-title { margin: 0; font-size: 16px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; } .ds-card-desc { margin: 4px 0 0; font-size: 14px; color: #606369; } .ds-card-body { padding: 8px 16px 16px; font-size: 14px; line-height: 1.5; }"
+    },
+    {
+      "name": "Status Badge",
+      "kind": "chip",
+      "refersTo": "badge-success",
+      "description": "Status de escala: sempre cor + texto.",
+      "html": "<span class=\"ds-badge ds-badge-success\">Confirmado</span> <span class=\"ds-badge ds-badge-warning\">Pendente</span> <span class=\"ds-badge ds-badge-muted\">Vago</span>",
+      "css": ".ds-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 9999px; padding: 2px 8px; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 12px; font-weight: 500; line-height: 1.4; } .ds-badge-success { background: rgba(37,152,77,0.15); color: #25984D; } .ds-badge-warning { background: rgba(217,165,20,0.2); color: #A16207; } .ds-badge-muted { background: #ECEFF2; color: #606369; } .ds-badge-danger { background: rgba(204,39,46,0.1); color: #CC272E; }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Item de navegação da sidebar/bottom bar.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item is-active\" href=\"#\">Agenda</a><a class=\"ds-nav-item\" href=\"#\">Calendário</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; } .ds-nav-item { display: flex; align-items: center; height: 40px; padding: 0 12px; border-radius: 12px; color: #606369; font-size: 14px; font-weight: 500; text-decoration: none; transition: background 150ms, color 150ms; } .ds-nav-item:hover { background: #ECE8E4; } .ds-nav-item.is-active { background: rgba(200,16,46,0.12); color: #C8102E; box-shadow: 0 1px 2px rgba(26,26,26,0.06); } .ds-nav-item:focus-visible { outline: none; box-shadow: 0 0 0 2px #C8102E; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Alternância Membro|Líder no registro.",
+      "html": "<div class=\"ds-seg\" role=\"group\"><button type=\"button\" class=\"ds-seg-btn is-active\">Membro</button><button type=\"button\" class=\"ds-seg-btn\">Líder</button></div>",
+      "css": ".ds-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 12px; background: #F0F0F0; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; } .ds-seg-btn { min-height: 44px; border: none; border-radius: 8px; background: transparent; color: #606369; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 150ms, color 150ms, box-shadow 150ms; } .ds-seg-btn.is-active { background: #FFFFFF; color: #1A1A1A; box-shadow: 0 1px 2px rgba(0,0,0,0.05); } .ds-seg-btn:focus-visible { outline: none; box-shadow: 0 0 0 2px #C8102E; }"
+    },
+    {
+      "name": "Brand Mark (ChurchMark)",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Disco branco com cruz vermelha e montes bronze — assinatura do login.",
+      "html": "<span class=\"ds-church-mark\"><svg viewBox=\"0 0 64 64\" width=\"48\" height=\"48\" aria-hidden=\"true\"><path d=\"M6 54 L20 34 L30 46 L42 24 L58 54 Z\" fill=\"#8C6239\"/><path d=\"M6 54 L16 42 L28 54 Z\" fill=\"#6B4A28\"/><rect x=\"29.5\" y=\"8\" width=\"5\" height=\"26\" rx=\"1\" fill=\"#C8102E\"/><rect x=\"22\" y=\"15\" width=\"20\" height=\"5\" rx=\"1\" fill=\"#C8102E\"/></svg></span>",
+      "css": ".ds-church-mark { display: inline-flex; align-items: center; justify-content: center; width: 72px; height: 72px; border-radius: 9999px; background: #FFFFFF; box-shadow: 0 8px 20px -6px rgba(26,26,26,0.35); }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Feedback temporário no topo da tela.",
+      "html": "<div class=\"ds-toast ds-toast-success\" role=\"status\">Escala confirmada!</div>",
+      "css": ".ds-toast { width: 100%; max-width: 384px; border-radius: 12px; padding: 12px 16px; color: #fff; font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size: 14px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1); } .ds-toast-success { background: #25984D; } .ds-toast-error { background: #CC272E; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "O Púlpito Acolhedor",
+    "overview": "Este sistema serve a um PWA de escalas: voluntários no celular antes do culto, líderes preenchendo vagas, o ADMIN aprovando pedidos. A personalidade é acolhedor, confiável e simples (PRODUCT.md). Calor de comunidade sem infantilidade; confiança de ferramenta sem burocracia de SaaS.\n\nA paleta unifica a marca: o vermelho da cruz é o primary de seleção, navegação e ações default no shell logado e no commit de autenticação; o bronze dos montes apoia ícones e gradientes de marca. A superfície é neutra quente e legível, sem índigo separado do shell. O sistema rejeita explicitamente SaaS cream genérico, glassmorphism decorativo, gradient text e UI escura de ferramenta de desenvolvedor fora de lugar (PRODUCT.md anti-references).",
+    "keyCharacteristics": [
+      "Uma família sans do sistema; hierarquia por peso e escala fixa, sem fonte de display em labels",
+      "Mobile-first: alvos ≥44px, uma coluna, bottom nav no celular",
+      "Status sempre cor + texto (Confirmado, Pendente, Vago, Recusado)",
+      "Cantos generosos (12–16px em controles e cards), sombras baixas e amplas",
+      "Modo escuro como tema completo, não como inverter forçado"
+    ],
+    "rules": [
+      { "name": "The Cross Red Rule", "body": "O Vermelho Cruz (#C8102E) governa primary, navegação e ações default no shell logado e no login. Não inundar listas inteiras de vermelho: reservar intensidade cheia para herói, commit e foco; em listas usar versões em 10–15% de opacidade.", "section": "colors" },
+      { "name": "The Status Never Color-Only Rule", "body": "Todo status de escala leva rótulo em texto junto da cor (Vago, Pendente, Confirmado, Recusado). Proibido comunicar status só com bolinha ou hue.", "section": "colors" },
+      { "name": "The One Family Rule", "body": "Uma família sans. Proibido display/serif/mono em labels, botões, tabelas ou dados.", "section": "typography" },
+      { "name": "The Discrete Layers Rule", "body": "Superfícies em repouso são planas ou shadow-sm. Sombras novas só como resposta a estado ou a hierarquia real (dialog > card > texto). Proibido sombra escura com blur pequeno.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do responder qual é o próximo passo? em cada tela antes de decorar (PRODUCT.md princípio 1).",
+      "Do usar alvos de toque ≥44px no mobile e manter ações do dia à altura do polegar.",
+      "Do mostrar status com cor e texto; anel de foco visível em todo controle interativo.",
+      "Do aplicar WCAG AA: corpo ≥4.5:1, placeholders inclusive; prefers-reduced-motion respeitado.",
+      "Do usar o Vermelho Cruz (#C8102E) como primary em login e no shell logado (nav, botões, foco); destrutivo em tom mais escuro nos dialogs.",
+      "Do manter radius 12–16px em controles e cards; uma família sans; copy em português curta e gentil.",
+      "Do pintar roles visíveis: ADMIN, LÍDER e MEMBRO veem só o que cabe, sem ler permissão como defeito."
+    ],
+    "donts": [
+      "Don't cair no SaaS cream genérico (fundo bege quase branco + cards idênticos enfileirados + eyebrow cinza em caixa alta) — anti-reference do PRODUCT.md.",
+      "Don't usar glassmorphism decorativo nem gradient text (background-clip: text).",
+      "Don't imitar o caos visual de corrente de WhatsApp / planilha colorida que este app substitui: sem hierarquia não.",
+      "Don't vestir UI escura ferramenta de desenvolvedor fora de lugar no contexto de igreja; dark mode é tema completo com os tokens .dark, não neon de IDE.",
+      "Don't comunicar status só com cor; Don't colocar display/serif em label, botão ou dado; Don't reinventar scrollbars, controles ou modais non-standard.",
+      "Don't usar border-left/border-right >1px como faixa colorida, Don't usar hero-metric template, Don't repetir grid de cards idênticos sem hierarquia.",
+      "Don't copiar o glow do botão ENTRAR para botões de lista; Don't animação decorativa que não comunique estado (register product)."
+    ]
+  }
+}
