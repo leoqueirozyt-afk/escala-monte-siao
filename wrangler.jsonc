@@ -13,11 +13,8 @@
     {
       "binding": "DB",
       "database_name": "escala-monte-siao",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "589e03d5-eff2-4426-835a-26d46f849f40",
       "migrations_dir": "migrations"
     }
-  ],
-  "vars": {
-    "JWT_SECRET": "dev-secret-troque-em-producao-via-wrangler-secret"
-  }
+  ]
 }
