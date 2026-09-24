@@ -10,6 +10,7 @@ import {
   Users,
   BarChart3,
   Handshake,
+  ListMusic,
   Menu,
 } from "lucide-react";
 import { useState } from "react";
@@ -39,6 +40,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const leader = user ? isLeaderRole(user.role) : false;
   const admin = user?.role === "ADMIN";
+  const showPlaylist = admin || ministries.some((m) => m.name === "Louvor");
+  const playlistNav = showPlaylist ? [{ to: "/playlists", label: "Playlist", icon: ListMusic }] : [];
   const desktopNav = leader
     ? [
         { to: "/", label: "Início", icon: Home },
@@ -46,18 +49,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         { to: "/calendario", label: "Indisponibilidade", icon: CalendarOff },
         ...leaderNav,
         ...(admin ? adminNav : []),
+        ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]
-    : volunteerNav;
+    : [...volunteerNav.slice(0, 3), ...playlistNav, volunteerNav[3]];
 
   const bottomNav = leader
     ? [
         { to: "/", label: "Início", icon: Home },
         { to: "/agenda", label: "Agenda", icon: ClipboardList },
         { to: "/escala", label: "Escala", icon: CalendarDays },
+        ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]
-    : volunteerNav;
+    : [...volunteerNav.slice(0, 3), ...playlistNav, volunteerNav[3]];
 
   return (
     <div className="flex min-h-full">

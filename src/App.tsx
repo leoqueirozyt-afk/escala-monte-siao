@@ -10,6 +10,7 @@ import { ScheduleMatrixPage } from "./pages/ScheduleMatrixPage";
 import { MinistriesPage } from "./pages/MinistriesPage";
 import { SwapsPage } from "./pages/SwapsPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { PlaylistsPage } from "./pages/PlaylistsPage";
 
 function Loading() {
   return (
@@ -30,6 +31,15 @@ function AdminOnly({ children }: { children: React.ReactNode }) {
   if (loading) return <Loading />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "ADMIN") return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+function LouvorOnly({ children }: { children: React.ReactNode }) {
+  const { user, loading, ministries } = useAuth();
+  if (loading) return <Loading />;
+  if (!user) return <Navigate to="/login" replace />;
+  const allowed = user.role === "ADMIN" || ministries.some((m) => m.name === "Louvor");
+  if (!allowed) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -81,6 +91,14 @@ export default function App() {
                     <LeaderOnly>
                       <ReportsPage />
                     </LeaderOnly>
+                  }
+                />
+                <Route
+                  path="/playlists"
+                  element={
+                    <LouvorOnly>
+                      <PlaylistsPage />
+                    </LouvorOnly>
                   }
                 />
                 <Route path="*" element={<Navigate to="/" replace />} />
