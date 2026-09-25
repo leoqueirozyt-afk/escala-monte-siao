@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Handshake, MapPin } from "lucide-react";
+import { Handshake, MapPin, UserSearch } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { formatDateTime } from "../lib/utils";
 import { useAsyncData } from "../lib/use-async-data";
@@ -7,8 +7,9 @@ import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Dialog } from "../components/ui/dialog";
-import { Select, Field } from "../components/ui/input";
+import { Field } from "../components/ui/input";
 import { StatusBadge } from "../components/StatusBadge";
+import { PersonAvatar } from "../components/ui/person-avatar";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
 import type { Candidate, Schedule } from "../../shared/types";
@@ -164,14 +165,45 @@ export function AgendaPage() {
             </div>
             {candidates.length > 0 ? (
               <Field label="Trocar com (opcional)">
-                <Select value={selectedCandidate} onChange={(e) => setSelectedCandidate(e.target.value)}>
-                  <option value="">Líder escolhe outro voluntário</option>
+                <div className="max-h-60 space-y-1 overflow-y-auto rounded-xl border p-2" role="listbox" aria-label="Candidatos para troca">
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={selectedCandidate === ""}
+                    onClick={() => setSelectedCandidate("")}
+                    className={`flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm ${
+                      selectedCandidate === "" ? "bg-primary/10" : "hover:bg-muted"
+                    }`}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted"
+                    >
+                      <UserSearch size={14} />
+                    </span>
+                    <span className="truncate font-medium">Líder escolhe outro voluntário</span>
+                  </button>
                   {candidates.map((cand) => (
-                    <option key={cand.user_id} value={cand.user_id}>
-                      {cand.name} ({cand.services_this_month}/{cand.max_services_per_month} escalas no mês)
-                    </option>
+                    <button
+                      key={cand.user_id}
+                      type="button"
+                      role="option"
+                      aria-selected={selectedCandidate === String(cand.user_id)}
+                      onClick={() => setSelectedCandidate(String(cand.user_id))}
+                      className={`flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm ${
+                        selectedCandidate === String(cand.user_id) ? "bg-primary/10" : "hover:bg-muted"
+                      }`}
+                    >
+                      <PersonAvatar name={cand.name} avatarUrl={cand.avatar_url} className="h-8 w-8 text-xs" />
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{cand.name}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {cand.services_this_month}/{cand.max_services_per_month} escalas no mês
+                        </span>
+                      </span>
+                    </button>
                   ))}
-                </Select>
+                </div>
               </Field>
             ) : (
               <p className="text-sm text-muted-foreground">
