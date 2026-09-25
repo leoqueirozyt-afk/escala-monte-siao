@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import {
   CalendarDays,
@@ -11,12 +11,15 @@ import {
   BarChart3,
   Handshake,
   ListMusic,
+  Megaphone,
   Shapes,
   Menu,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth, isLeaderRole } from "../../lib/auth";
-import { cn, roleLabel } from "../../lib/utils";
+import { cn, monthKey, roleLabel } from "../../lib/utils";
+import { api } from "../../lib/api";
+import { NOTICES_EVENT } from "../../lib/notices";
 import { ThemeToggle } from "../ThemeToggle";
 import { ChurchMark } from "../ChurchMark";
 
@@ -38,34 +41,59 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout, ministries, leaderMinistryIds } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const [unreadNotices, setUnreadNotices] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      api
+        .get<{ count: number }>(`/notices/unread-count?month=${monthKey()}`)
+        .then((d) => {
+          if (alive) setUnreadNotices(d.count);
+        })
+        .catch(() => {});
+    };
+    load();
+    window.addEventListener(NOTICES_EVENT, load);
+    return () => {
+      alive = false;
+      window.removeEventListener(NOTICES_EVENT, load);
+    };
+  }, [location.pathname]);
+
   const leader = user ? isLeaderRole(user.role) : false;
   const admin = user?.role === "ADMIN";
   const showPlaylist = admin || ministries.some((m) => m.name === "Louvor");
   const playlistNav = showPlaylist ? [{ to: "/playlists", label: "Playlist", icon: ListMusic }] : [];
   const showGrupos = admin || (leader && leaderMinistryIds.includes(1));
   const gruposNav = showGrupos ? [{ to: "/grupos", label: "Grupos", icon: Shapes }] : [];
-  const desktopNav = leader
+  type NavItem = { to: string; label: string; icon: typeof Home; badge?: number };
+  const avisosNav: NavItem[] = [{ to: "/avisos", label: "Avisos", icon: Megaphone, badge: unreadNotices }];
+  const desktopNav: NavItem[] = leader
     ? [
         { to: "/", label: "Início", icon: Home },
         { to: "/agenda", label: "Minha Agenda", icon: ClipboardList },
         { to: "/calendario", label: "Indisponibilidade", icon: CalendarOff },
+        ...avisosNav,
         ...leaderNav,
         ...gruposNav,
         ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]
-    : [...volunteerNav.slice(0, 3), ...gruposNav, ...playlistNav, volunteerNav[3]];
+    : [...volunteerNav.slice(0, 3), ...avisosNav, ...gruposNav, ...playlistNav, volunteerNav[3]];
 
-  const bottomNav = leader
+  const bottomNav: NavItem[] = leader
     ? [
         { to: "/", label: "Início", icon: Home },
         { to: "/agenda", label: "Agenda", icon: ClipboardList },
         { to: "/escala", label: "Escala", icon: CalendarDays },
+        ...avisosNav,
         ...gruposNav,
         ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]
-    : [...volunteerNav.slice(0, 3), ...gruposNav, ...playlistNav, volunteerNav[3]];
+    : [...volunteerNav.slice(0, 3), ...avisosNav, ...gruposNav, ...playlistNav, volunteerNav[3]];
 
   return (
     <div className="flex min-h-full">
@@ -102,6 +130,11 @@ export function AppShell({ children }: { children: ReactNode }) {
             >
               <item.icon size={18} />
               {item.label}
+              {item.badge != null && item.badge > 0 && (
+                <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
@@ -175,6 +208,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               >
                 <item.icon size={16} />
                 {item.label}
+                {item.badge != null && item.badge > 0 && (
+                  <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                    {item.badge > 9 ? "9+" : item.badge}
+                  </span>
+                )}
               </NavLink>
             ))}
             <button
@@ -214,7 +252,14 @@ export function AppShell({ children }: { children: ReactNode }) {
                 )
               }
             >
-              <item.icon size={20} />
+              <span className="relative inline-flex">
+                <item.icon size={20} />
+                {item.badge != null && item.badge > 0 && (
+                  <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold leading-none text-destructive-foreground">
+                    {item.badge > 9 ? "9+" : item.badge}
+                  </span>
+                )}
+              </span>
               {item.label}
             </NavLink>
           ))}
