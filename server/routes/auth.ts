@@ -108,9 +108,14 @@ authRoutes.get("/me", requireAuth, async (c) => {
           `SELECT m.id, m.name, m.description FROM ministries m
            JOIN roles r ON r.ministry_id = m.id
            JOIN user_roles ur ON ur.role_id = r.id
-           WHERE ur.user_id = ? GROUP BY m.id`,
+           WHERE ur.user_id = ?
+           UNION
+           SELECT m.id, m.name, m.description FROM ministries m
+           JOIN ministry_leaders ml ON ml.ministry_id = m.id
+           WHERE ml.user_id = ?
+           ORDER BY name`,
         )
-            .bind(payload.sub)
+            .bind(payload.sub, payload.sub)
             .all();
   return c.json({ user, ministries: ministries.results });
 });

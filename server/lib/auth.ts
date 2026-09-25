@@ -39,8 +39,8 @@ export function isLeader(user: JwtPayload): boolean {
 export async function leaderMinistryIds(db: D1Database, user: JwtPayload): Promise<number[] | null> {
   if (user.role === "ADMIN") return null;
   if (user.role !== "LEADER") return [];
-  const rows = await db.prepare("SELECT id FROM ministries WHERE leader_id = ?").bind(user.sub).all();
-  return rows.results.map((r: any) => Number(r.id));
+  const rows = await db.prepare("SELECT ministry_id FROM ministry_leaders WHERE user_id = ?").bind(user.sub).all();
+  return rows.results.map((r: any) => Number(r.ministry_id));
 }
 
 export function jsonError(c: Context, message: string, status: 400 | 403 | 404 | 409) {

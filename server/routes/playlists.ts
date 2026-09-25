@@ -27,7 +27,7 @@ async function canView(db: D1Database, user: JwtPayload): Promise<boolean> {
   if (member) return true;
   if (user.role !== "LEADER") return false;
   const led = await db
-    .prepare("SELECT 1 FROM ministries WHERE id = ? AND leader_id = ?")
+    .prepare("SELECT 1 FROM ministry_leaders WHERE ministry_id = ? AND user_id = ?")
     .bind(LOUVOR_MINISTRY_ID, user.sub)
     .first();
   return !!led;
@@ -37,7 +37,7 @@ async function canManage(db: D1Database, user: JwtPayload): Promise<boolean> {
   if (user.role === "ADMIN") return true;
   if (user.role !== "LEADER") return false;
   const led = await db
-    .prepare("SELECT 1 FROM ministries WHERE id = ? AND leader_id = ?")
+    .prepare("SELECT 1 FROM ministry_leaders WHERE ministry_id = ? AND user_id = ?")
     .bind(LOUVOR_MINISTRY_ID, user.sub)
     .first();
   return !!led;
