@@ -17,6 +17,8 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -25,7 +27,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== "Tab") return;
@@ -67,7 +69,7 @@ export function Dialog({ open, onClose, title, children, className }: DialogProp
       window.clearTimeout(timer);
       openerRef.current?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
