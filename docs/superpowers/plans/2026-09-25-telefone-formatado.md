@@ -10,7 +10,7 @@
 - **Login:** `server/routes/auth.ts:22` — `WHERE email = ? OR phone = ?` exato. Identificador de login é `body.email` (LoginPage manda `identifier` no campo `email`).
 - **Perfil:** `src/pages/ProfilePage.tsx` — form (48, init 81), `save` `PUT /users/${id}` com `...form` (114-118), campo (182-184).
 - **Admin:** `server/routes/users.ts` — `POST /` (25-41, grava `phone ?? null`), `PUT /:id` (43-75, `COALESCE(?, phone)`). **Sem UI** que os chame.
-- **Conflito resolvido:** 13 call sites de smoke criam usuários via `POST /users` **sem telefone** → Task 1 atualiza todos (obrigatório no POST).
+- **Conflito resolvido:** 14 call sites de smoke criam usuários via `POST /users` **sem telefone** (13 via `req("/users")` + 1 em `smoke-playlists` via `` `${base}/users` `` — o grep precisou cobrir os dois formatos) → Task 1 atualiza todos (obrigatório no POST).
 - `phone` sem UNIQUE (0001_init.sql:5). Node v24 roda `.ts` (type stripping) → smoke testa funções puras via `import(pathToFileURL(...))`.
 - Máscara progressiva precisa tratar backspace; formato aceito: 10 díg. `(DD) 9999-9999` ou 11 díg. `(DD) 99999-9999` com 3º dígito `9`; DDD 11–99.
 
@@ -110,9 +110,9 @@ export function formatPhone(value: string): string {
   bind (38) → `phoneFmt`.
 - `PUT /:id` (antes do UPDATE): string não-vazia → `formatPhone` (400 no catch); vazia/ausente → `phoneVal = null` (COALESCE mantém o atual).
 
-### 1d. Atualizar os 13 call sites de smoke
+### 1d. Atualizar os 14 call sites de smoke (7 arquivos)
 
-Adicionar `phone` a cada `POST /users` (7 arquivos: smoke-avisos ×3, smoke-excluir-funcoes ×3, smoke-excluir-ministerio ×2, smoke-grupos-voz ×2, smoke-push ×2, smoke-remocoes-avatar ×1), com sufixo único por chamada dentro do arquivo:
+Adicionar `phone` a cada `POST /users` (7 arquivos: smoke-avisos ×3, smoke-excluir-funcoes ×3, smoke-excluir-ministerio ×2, smoke-grupos-voz ×2, smoke-push ×2, smoke-remocoes-avatar ×1, smoke-playlists ×1 — este último via ` ${base}/users `), com sufixo único por chamada dentro do arquivo:
 
 ```js
 phone: `119${String(stamp).slice(-7)}1`,   // 2ª chamada: sufixo 2, etc.
@@ -162,7 +162,7 @@ typecheck + build + detector + suíte local 9 smokes.
 
 ## Checklist de conclusão
 
-- [ ] Task 1: `shared/phone.ts` + servidor + 13 smokes atualizados; `smoke-telefone` verde; suíte local 9/9
-- [ ] Task 2: máscera + validação em Cadastro e Perfil; typecheck/build/detector 0
-- [ ] Task 3: push, run CI success, 9 smokes de produção verdes
-- [ ] Task 4: checkboxes, resumo PT entregue
+- [x] Task 1: `shared/phone.ts` + servidor + 14 call sites de smoke atualizados (o 14º em `smoke-playlists` usava `${base}/users`); `smoke-telefone` verde (45 checks); suíte local 10/10
+- [x] Task 2: máscara + validação em Cadastro e Perfil; typecheck/build/detector 0; DOM check 7/7 (máscara, backspace, submit sem telefone)
+- [x] Task 3: push `1c8c360`, run CI `36169736285` success, 10 smokes de produção verdes
+- [x] Task 4: checkboxes, resumo PT entregue
