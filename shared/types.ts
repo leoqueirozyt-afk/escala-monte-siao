@@ -107,6 +107,7 @@ export interface Schedule {
   location?: string | null;
   role_name?: string;
   ministry_name?: string;
+  ministry_id?: number;
   user_name?: string | null;
   user_avatar?: string | null;
   user_classification?: string | null;

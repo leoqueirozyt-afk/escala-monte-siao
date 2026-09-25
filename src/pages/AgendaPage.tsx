@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Handshake, MapPin, UserSearch } from "lucide-react";
+import { Handshake, MapPin, UserSearch, Users } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { formatDateTime } from "../lib/utils";
 import { useAsyncData } from "../lib/use-async-data";
@@ -88,6 +88,11 @@ export function AgendaPage() {
             <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(s.event_date!)}</p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <Badge variant="outline">{s.ministry_name} · {s.role_name}</Badge>
+              {s.group && (
+                <Badge variant="secondary" className="gap-1">
+                  <Users size={10} /> Grupo {s.group.name}
+                </Badge>
+              )}
               {s.location && (
                 <span className="flex items-center gap-1">
                   <MapPin size={12} /> {s.location}
@@ -119,7 +124,7 @@ export function AgendaPage() {
             </Button>
           </div>
         )}
-        {new Date(s.event_date!).getTime() > Date.now() && (
+        {new Date(s.event_date!).getTime() > Date.now() && !s.group && (
           <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => openSwap(s)}>
             <Handshake size={14} /> Solicitar troca
           </Button>

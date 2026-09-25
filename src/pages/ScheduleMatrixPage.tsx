@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarPlus, ChevronDown, Pencil, Plus, UserPlus, Trash2, ListPlus } from "lucide-react";
+import { CalendarPlus, ChevronDown, Pencil, Plus, UserPlus, Trash2, ListPlus, Mic, Music } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, monthKey } from "../lib/utils";
@@ -12,9 +12,10 @@ import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { Badge } from "../components/ui/badge";
 import { StatusBadge } from "../components/StatusBadge";
 import { PersonAvatar } from "../components/ui/person-avatar";
+import { VoiceBadge } from "../components/VoiceBadge";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { Candidate, EventItem, Ministry, Schedule } from "../../shared/types";
+import type { Candidate, EventItem, Ministry, Schedule, VoiceGroup } from "../../shared/types";
 
 export function ScheduleMatrixPage() {
   const { user } = useAuth();
@@ -24,8 +25,14 @@ export function ScheduleMatrixPage() {
   const [newRoleId, setNewRoleId] = useState("");
   const [newEventOpen, setNewEventOpen] = useState(false);
   const [eventForm, setEventForm] = useState({ title: "", event_date: "", location: "" });
-  const [picker, setPicker] = useState<{ schedule: Schedule; candidates: Candidate[] } | null>(null);
+  const [picker, setPicker] = useState<{
+    schedule: Schedule;
+    candidates: Candidate[];
+    groups: VoiceGroup[];
+    pickerTab: "pessoas" | "grupos";
+  } | null>(null);
   const [chosenUser, setChosenUser] = useState("");
+  const [chosenGroup, setChosenGroup] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [newRoleName, setNewRoleName] = useState("");
   const [confirm, setConfirm] = useState<{
@@ -110,9 +117,15 @@ export function ScheduleMatrixPage() {
   const openPicker = async (s: Schedule) => {
     setBusy(true);
     try {
-      const candidates = await api.get<Candidate[]>(`/schedules/candidates/${s.id}`);
+      const [candidates, groups] = await Promise.all([
+        api.get<Candidate[]>(`/schedules/candidates/${s.id}`),
+        s.ministry_id === 1
+          ? api.get<VoiceGroup[]>("/voice/groups").catch(() => [] as VoiceGroup[])
+          : Promise.resolve([] as VoiceGroup[]),
+      ]);
       setChosenUser("");
-      setPicker({ schedule: s, candidates });
+      setChosenGroup(null);
+      setPicker({ schedule: s, candidates, groups, pickerTab: "pessoas" });
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
     } finally {
@@ -132,14 +145,29 @@ export function ScheduleMatrixPage() {
     }
   };
 
+  const assignGroup = async () => {
+    if (!picker || chosenGroup === null) return;
+    try {
+      await api.patch(`/schedules/${picker.schedule.id}`, { group_id: chosenGroup });
+      toast("Grupo escalado!");
+      setPicker(null);
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
   const unassign = (s: Schedule) => {
+    const isGroup = !!s.group;
     setConfirm({
       title: "Liberar vaga",
-      description: `Remover ${s.user_name} de ${s.role_name}? A vaga voltará a ficar em aberto.`,
+      description: isGroup
+        ? `Limpar o grupo "${s.group?.name}" de ${s.role_name}? A vaga voltará a ficar em aberto.`
+        : `Remover ${s.user_name} de ${s.role_name}? A vaga voltará a ficar em aberto.`,
       confirmLabel: "Liberar vaga",
       destructive: true,
       run: async () => {
-        await api.patch(`/schedules/${s.id}`, { user_id: null });
+        await api.patch(`/schedules/${s.id}`, isGroup ? { group_id: null } : { user_id: null });
         toast("Vaga liberada");
         load();
       },
@@ -173,6 +201,34 @@ export function ScheduleMatrixPage() {
   };
 
   const monthEvents = events.filter((e) => String(e.event_date).slice(0, 7) === month);
+
+  const groupMembers = (s: Schedule) => s.group?.members ?? [];
+  const groupCount = (s: Schedule) => {
+    const ms = groupMembers(s);
+    const confirmed = ms.filter((m) => m.status === "CONFIRMED").length;
+    return `${confirmed}/${ms.length}`;
+  };
+  const groupDot = (s: Schedule) => {
+    if (!s.group) {
+      return !s.user_id
+        ? "bg-muted-foreground/50"
+        : s.status === "CONFIRMED"
+          ? "bg-success"
+          : s.status === "DECLINED"
+            ? "bg-destructive"
+            : "bg-warning";
+    }
+    const ms = groupMembers(s);
+    if (ms.some((m) => m.status === "DECLINED")) return "bg-destructive";
+    if (ms.length > 0 && ms.every((m) => m.status === "CONFIRMED")) return "bg-success";
+    return "bg-warning";
+  };
+  const groupCountClass = (s: Schedule) => {
+    const ms = groupMembers(s);
+    if (ms.some((m) => m.status === "DECLINED")) return "text-xs font-bold text-destructive";
+    if (ms.length > 0 && ms.every((m) => m.status === "CONFIRMED")) return "text-xs font-bold text-success";
+    return "text-xs font-bold text-warning";
+  };
 
   return (
     <div className="space-y-5">
@@ -255,7 +311,7 @@ export function ScheduleMatrixPage() {
         monthEvents.map((ev) => {
         const slots = byEvent.get(ev.id) ?? [];
         const isOpen = expanded === ev.id;
-        const filled = slots.filter((s) => s.user_id).length;
+        const filled = slots.filter((s) => s.user_id || s.group).length;
         return (
           <Card key={ev.id}>
             <CardHeader className="flex-row items-center justify-between gap-2">
@@ -305,22 +361,49 @@ export function ScheduleMatrixPage() {
               <CardContent id={`event-slots-${ev.id}`} className="space-y-2 pt-0">
                 {slots.length === 0 && <p className="text-sm text-muted-foreground">Sem funções definidas.</p>}
                 {slots.map((s) => {
-                  const dot =
-                    !s.user_id
-                      ? "bg-muted-foreground/50"
-                      : s.status === "CONFIRMED"
-                        ? "bg-success"
-                        : s.status === "DECLINED"
-                          ? "bg-destructive"
-                          : "bg-warning";
                   return (
                     <div
                       key={s.id}
                       className="flex items-center justify-between gap-3 rounded-xl border p-3"
                     >
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className={`h-3 w-3 shrink-0 rounded-full ${dot}`} />
-                        {s.user_id ? (
+                        <span className={`h-3 w-3 shrink-0 rounded-full ${groupDot(s)}`} />
+                        {s.group ? (
+                          <div className="min-w-0">
+                            <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
+                              {s.role_name}
+                              <Badge variant="secondary" className="gap-1 text-[10px]">
+                                {s.group.kind === "VOZ" ? <Mic size={10} /> : <Music size={10} />}
+                                {s.group.name}
+                              </Badge>
+                              <span className={groupCountClass(s)} aria-label="Status do grupo">
+                                {groupCount(s)}
+                              </span>
+                            </p>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {s.group.members.map((gm) => (
+                                <span
+                                  key={gm.user_id}
+                                  className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[10px]"
+                                >
+                                  <PersonAvatar
+                                    name={gm.name}
+                                    avatarUrl={gm.avatar_url}
+                                    className="h-4 w-4 text-[8px]"
+                                  />
+                                  {gm.name}
+                                  {gm.classification_color && (
+                                    <span
+                                      aria-hidden="true"
+                                      className="h-1.5 w-1.5 rounded-full"
+                                      style={{ backgroundColor: gm.classification_color }}
+                                    />
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : s.user_id ? (
                           <PersonAvatar name={s.user_name ?? ""} avatarUrl={s.user_avatar} className="h-8 w-8 text-xs" />
                         ) : (
                           <span
@@ -331,15 +414,29 @@ export function ScheduleMatrixPage() {
                           </span>
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">{s.role_name}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {s.user_name ?? "Vaga em aberto"}
-                          </p>
+                          {!s.group && (
+                            <>
+                              <p className="flex items-center gap-2 text-sm font-medium">
+                                {s.role_name}
+                                {s.user_classification && s.user_classification_color && (
+                                  <VoiceBadge
+                                    name={s.user_classification}
+                                    color={s.user_classification_color}
+                                    className="text-[10px]"
+                                  />
+                                )}
+                              </p>
+                              <p className="truncate text-xs text-muted-foreground">
+                                {s.user_name ?? "Vaga em aberto"}
+                              </p>
+                            </>
+                          )}
+                          {s.group && <p className="truncate text-xs text-muted-foreground">Grupo escalado</p>}
                         </div>
                       </div>
                       <div className="flex shrink-0 items-center gap-2">
-                        <StatusBadge schedule={s} />
-                        {s.user_id ? (
+                        {!s.group && <StatusBadge schedule={s} />}
+                        {s.user_id || s.group ? (
                           <>
                             <button
                               type="button"
@@ -382,7 +479,57 @@ export function ScheduleMatrixPage() {
               </p>
               <p className="text-muted-foreground">{formatDateTime(picker.schedule.event_date!)}</p>
             </div>
-            {picker.candidates.length === 0 ? (
+            {picker.groups.length > 0 && (
+              <div className="flex gap-2" role="tablist" aria-label="Modo de escalação">
+                {(["pessoas", "grupos"] as const).map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    role="tab"
+                    aria-selected={picker.pickerTab === t}
+                    onClick={() => setPicker({ ...picker, pickerTab: t })}
+                    className={`flex min-h-11 flex-1 items-center justify-center rounded-xl text-sm font-medium ${
+                      picker.pickerTab === t ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {t === "pessoas" ? "Pessoas" : "Grupos"}
+                  </button>
+                ))}
+              </div>
+            )}
+            {picker.pickerTab === "grupos" && picker.groups.length > 0 ? (
+              <div className="max-h-60 space-y-1 overflow-y-auto rounded-xl border p-2" role="listbox" aria-label="Grupos">
+                {picker.groups
+                  .filter((g) => g.ministry_id === picker.schedule.ministry_id)
+                  .map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      role="option"
+                      aria-selected={chosenGroup === g.id}
+                      onClick={() => setChosenGroup(g.id)}
+                      className={`flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm ${
+                        chosenGroup === g.id ? "bg-primary/10" : "hover:bg-muted"
+                      }`}
+                    >
+                      {g.kind === "VOZ" ? (
+                        <Mic size={16} className="text-primary" />
+                      ) : (
+                        <Music size={16} className="text-primary" />
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{g.name}</span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {g.members.length} membro(s)
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                {picker.groups.filter((g) => g.ministry_id === picker.schedule.ministry_id).length === 0 && (
+                  <p className="p-2 text-sm text-muted-foreground">Nenhum grupo para este ministério.</p>
+                )}
+              </div>
+            ) : picker.candidates.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 Nenhum voluntário elegível (indisponíveis e já escalados são ocultados).
               </p>
@@ -413,11 +560,17 @@ export function ScheduleMatrixPage() {
                     ))}
                   </div>
                 </Field>
-                <Button className="w-full" onClick={assign} disabled={!chosenUser}>
-                  Escalar voluntário
-                </Button>
               </>
             )}
+            {picker.pickerTab === "grupos" && picker.groups.length > 0 ? (
+              <Button className="w-full" onClick={assignGroup} disabled={chosenGroup === null}>
+                Escalar grupo
+              </Button>
+            ) : picker.candidates.length > 0 ? (
+              <Button className="w-full" onClick={assign} disabled={!chosenUser}>
+                Escalar voluntário
+              </Button>
+            ) : null}
           </div>
         )}
       </Dialog>
