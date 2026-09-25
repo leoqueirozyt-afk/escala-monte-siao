@@ -285,7 +285,9 @@ noticeRoutes.get("/unread-count", async (c) => {
 
 noticeRoutes.post("/seen", async (c) => {
   const user = c.get("user");
-  await c.env.DB.prepare("UPDATE users SET notices_seen_at = datetime('now') WHERE id = ?").bind(user.sub).run();
+  await c.env.DB.prepare(
+    `UPDATE users SET notices_seen_at = strftime('%Y-%m-%d %H:%M:%f', 'now') WHERE id = ?`,
+  ).bind(user.sub).run();
   return c.json({ ok: true });
 });
 
@@ -300,7 +302,8 @@ noticeRoutes.post("/", async (c) => {
     return c.json({ error: "Sem permissão para avisos gerais" }, 403);
   }
   const r = await c.env.DB.prepare(
-    "INSERT INTO notices (ministry_id, title, body, month, created_by) VALUES (?, ?, ?, ?, ?)",
+    `INSERT INTO notices (ministry_id, title, body, month, created_by, created_at)
+     VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))`,
   )
     .bind(ministry_id ?? null, String(title).trim(), String(body).trim(), month, user.sub)
     .run();
