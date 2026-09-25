@@ -193,6 +193,24 @@ export function ScheduleMatrixPage() {
     });
   };
 
+  const removeSlot = (s: Schedule) => {
+    setConfirm({
+      title: "Remover função do evento",
+      description: s.group
+        ? `Remover "${s.role_name}" com o grupo ${s.group.name}? O grupo perderá a escalação deste evento.`
+        : s.user_id
+          ? `Remover "${s.role_name}" com ${s.user_name} escalado? A vaga será apagada e ${s.user_name} perderá a escalação deste evento.`
+          : `Remover a função "${s.role_name}" deste evento? A vaga será apagada.`,
+      confirmLabel: "Remover",
+      destructive: true,
+      run: async () => {
+        await api.delete(`/schedules/${s.id}`);
+        toast("Função removida do evento");
+        load();
+      },
+    });
+  };
+
   const addSlot = async () => {
     if (!addSlotEvent || !newRoleId) return;
     try {
@@ -486,6 +504,14 @@ export function ScheduleMatrixPage() {
                             <UserPlus size={14} /> Escalar
                           </Button>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => removeSlot(s)}
+                          aria-label={`Remover função ${s.role_name} deste evento`}
+                          className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-destructive hover:bg-destructive/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <X size={15} aria-hidden="true" />
+                        </button>
                       </div>
                     </div>
                   );
