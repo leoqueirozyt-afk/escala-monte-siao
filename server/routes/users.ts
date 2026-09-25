@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
 import { requireAuth, requireRole, isLouvorLeader, type AppVariables } from "../lib/auth.js";
 import { hashPassword } from "../lib/password.js";
+import { formatPhone } from "../../shared/phone.js";
 
 export const userRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -25,6 +26,14 @@ userRoutes.get("/", requireRole("ADMIN", "LEADER"), async (c) => {
 userRoutes.post("/", requireRole("ADMIN", "LEADER"), async (c) => {
   const { name, email, phone, password, role, max_services_per_month } = await c.req.json().catch(() => ({}));
   if (!name || !email || !password) return c.json({ error: "Nome, email e senha obrigatórios" }, 400);
+  const phoneRaw = String(phone ?? "").trim();
+  if (!phoneRaw) return c.json({ error: "Telefone é obrigatório. Use o formato (11) 99999-9999." }, 400);
+  let phoneFmt: string;
+  try {
+    phoneFmt = formatPhone(phoneRaw);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Telefone inválido" }, 400);
+  }
   const user = c.get("user");
   const finalRole = user.role === "ADMIN" ? (role ?? "VOLUNTEER") : "VOLUNTEER";
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?")
@@ -35,7 +44,7 @@ userRoutes.post("/", requireRole("ADMIN", "LEADER"), async (c) => {
   const r = await c.env.DB.prepare(
     "INSERT INTO users (name, email, phone, password_hash, role, max_services_per_month) VALUES (?, ?, ?, ?, ?, ?)",
   )
-    .bind(name, String(email).toLowerCase().trim(), phone ?? null, password_hash, finalRole, max_services_per_month ?? 4)
+    .bind(name, String(email).toLowerCase().trim(), phoneFmt, password_hash, finalRole, max_services_per_month ?? 4)
     .run();
   return c.json({ id: r.meta.last_row_id }, 201);
 });
@@ -54,13 +63,22 @@ userRoutes.put("/:id", async (c) => {
   if (typeof avatar_url === "string" && avatar_url.length > 300_000) {
     return c.json({ error: "Imagem muito grande" }, 400);
   }
+  let phoneVal: string | null = null;
+  const phoneRaw = typeof phone === "string" ? phone.trim() : "";
+  if (phoneRaw) {
+    try {
+      phoneVal = formatPhone(phoneRaw);
+    } catch (e) {
+      return c.json({ error: e instanceof Error ? e.message : "Telefone inválido" }, 400);
+    }
+  }
   await c.env.DB.prepare(
     "UPDATE users SET name = COALESCE(?, name), email = COALESCE(?, email), phone = COALESCE(?, phone), role = COALESCE(?, role), max_services_per_month = COALESCE(?, max_services_per_month), avatar_url = COALESCE(?, avatar_url) WHERE id = ?",
   )
     .bind(
       name ?? null,
       email ? String(email).toLowerCase().trim() : null,
-      phone ?? null,
+      phoneVal,
       targetRole ?? null,
       max_services_per_month ?? null,
       avatar_url ?? null,

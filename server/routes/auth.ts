@@ -3,6 +3,7 @@ import type { Env } from "../lib/env.js";
 import { requireAuth, type AppVariables } from "../lib/auth.js";
 import { signJwt } from "../lib/jwt.js";
 import { hashPassword, verifyPassword } from "../lib/password.js";
+import { digits, formatPhone } from "../../shared/phone.js";
 
 export const authRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -19,9 +20,16 @@ authRoutes.post("/login", async (c) => {
   const identifier = String(body.email ?? "").trim();
   const password = String(body.password ?? "").trim();
   if (!identifier || !password) return c.json({ error: "E-mail (ou telefone) e senha obrigatórios" }, 400);
-  const user = await c.env.DB.prepare("SELECT * FROM users WHERE email = ? OR phone = ?")
-    .bind(identifier.toLowerCase(), identifier)
-    .first<any>();
+  const identDigits = digits(identifier);
+  const user = identifier.includes("@")
+    ? await c.env.DB.prepare("SELECT * FROM users WHERE email = ?").bind(identifier.toLowerCase()).first<any>()
+    : identDigits
+      ? await c.env.DB.prepare(
+          `SELECT * FROM users WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(phone, ''), '(', ''), ')', ''), '-', ''), ' ', '') = ?`,
+        )
+          .bind(identDigits)
+          .first<any>()
+      : null;
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     return c.json({ error: "Credenciais inválidas — confira email e senha (demo: admin@montesiao.org / senha123)" }, 401);
   }
@@ -53,11 +61,18 @@ authRoutes.post("/register", async (c) => {
   const name = String(body.name ?? "").trim();
   const email = String(body.email ?? "").trim().toLowerCase();
   const password = String(body.password ?? "");
-  const phone = body.phone;
+  const phoneRaw = String(body.phone ?? "").trim();
   const accountType = body.account_type === "leader" ? "leader" : "member";
   const ministryId = Number(body.ministry_id) || null;
   const roleId = Number(body.role_id) || null;
   if (!name || !email || !password) return c.json({ error: "Nome, email e senha obrigatórios" }, 400);
+  if (!phoneRaw) return c.json({ error: "Telefone é obrigatório. Use o formato (11) 99999-9999." }, 400);
+  let phone: string;
+  try {
+    phone = formatPhone(phoneRaw);
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Telefone inválido" }, 400);
+  }
   if (password.trim().length < 6) return c.json({ error: "Senha deve ter ao menos 6 caracteres" }, 400);
   const existing = await c.env.DB.prepare("SELECT id FROM users WHERE email = ?")
     .bind(email)
@@ -69,7 +84,7 @@ authRoutes.post("/register", async (c) => {
     const r = await c.env.DB.prepare(
       "INSERT INTO users (name, email, phone, password_hash, role, account_status) VALUES (?, ?, ?, ?, 'LEADER', 'PENDING_LEADER')",
     )
-      .bind(name, email, phone ?? null, password_hash)
+      .bind(name, email, phone, password_hash)
       .run();
     return c.json({ pending_approval: true, user: { id: r.meta.last_row_id, name, email, role: "LEADER" } }, 201);
   }
@@ -84,7 +99,7 @@ authRoutes.post("/register", async (c) => {
   const results = await c.env.DB.batch([
     c.env.DB.prepare(
       "INSERT INTO users (name, email, phone, password_hash, role) VALUES (?, ?, ?, ?, 'VOLUNTEER')",
-    ).bind(name, email, phone ?? null, password_hash),
+    ).bind(name, email, phone, password_hash),
     c.env.DB.prepare("INSERT INTO user_roles (user_id, role_id) VALUES (last_insert_rowid(), ?)").bind(roleId),
   ]);
   const id = results[0].meta.last_row_id;

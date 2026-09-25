@@ -12,6 +12,7 @@ import { useAsyncData } from "../lib/use-async-data";
 import { VoiceBadge } from "../components/VoiceBadge";
 import { NotificationsCard } from "../components/NotificationsCard";
 import type { VoiceClassification } from "../../shared/types";
+import { maskPhone, isValidPhone, formatPhone } from "../../shared/phone";
 
 function fileToAvatar(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -109,10 +110,15 @@ export function ProfilePage() {
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
+    if (form.phone && !isValidPhone(form.phone)) {
+      toast("Telefone inválido. Use o formato (11) 99999-9999.", "error");
+      return;
+    }
     setBusy(true);
     try {
       await api.put(`/users/${user!.id}`, {
         ...form,
+        phone: form.phone ? formatPhone(form.phone) : form.phone,
         max_services_per_month: Number(form.max_services_per_month),
         password: password || undefined,
       });
@@ -180,7 +186,13 @@ export function ProfilePage() {
               />
             </Field>
             <Field label="Telefone">
-              <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm({ ...form, phone: maskPhone(e.target.value) })}
+                placeholder="(11) 99999-9999"
+                type="tel"
+                autoComplete="tel"
+              />
             </Field>
             <Field label="Máx. de escalas por mês">
               <Input

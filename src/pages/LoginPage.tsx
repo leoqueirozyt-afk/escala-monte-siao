@@ -7,6 +7,7 @@ import { Input, Field, Select } from "../components/ui/input";
 import { toast } from "../components/ui/toast";
 import { cn } from "../lib/utils";
 import { ChurchMark } from "../components/ChurchMark";
+import { maskPhone, isValidPhone, formatPhone } from "../../shared/phone";
 
 const DEMO_PASSWORD = "senha123";
 const quickLogins = [
@@ -92,13 +93,17 @@ export function LoginPage() {
       toast("Escolha o ministério e a função", "error");
       return;
     }
+    if (!isValidPhone(phone)) {
+      toast("Telefone inválido. Use o formato (11) 99999-9999.", "error");
+      return;
+    }
     setBusy(true);
     try {
       const pending = await register({
         name: name.trim(),
         email: identifier.trim(),
         password: password.trim(),
-        phone: phone.trim() || undefined,
+        phone: formatPhone(phone),
         account_type: accountType,
         ministry_id: accountType === "member" ? Number(ministryId) : undefined,
         role_id: accountType === "member" ? Number(roleId) : undefined,
@@ -201,11 +206,12 @@ export function LoginPage() {
                 <Field label="Telefone">
                   <Input
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => setPhone(maskPhone(e.target.value))}
                     placeholder="(11) 99999-9999"
                     className="h-12 text-base"
                     type="tel"
                     autoComplete="tel"
+                    required
                   />
                 </Field>
 
