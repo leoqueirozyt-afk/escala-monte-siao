@@ -1,18 +1,18 @@
 import { useMemo, useState } from "react";
-import { Plus, UserPlus, Pencil, Crown, UserCheck, UserX, ShieldCheck } from "lucide-react";
+import { Plus, UserPlus, Pencil, Crown, UserCheck, UserX, ShieldCheck, UserMinus, Trash2 } from "lucide-react";
 import { api } from "../lib/api";
 import { useAsyncData } from "../lib/use-async-data";
 import { useAuth } from "../lib/auth";
-import { roleLabel } from "../lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Input, Field, Select } from "../components/ui/input";
 import { Dialog } from "../components/ui/dialog";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { Badge } from "../components/ui/badge";
+import { PersonAvatar } from "../components/ui/person-avatar";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { Ministry, User } from "../../shared/types";
+import type { Ministry, MinistryMember, User } from "../../shared/types";
 
 export function MinistriesPage() {
   const [newMinistryOpen, setNewMinistryOpen] = useState(false);
@@ -29,6 +29,8 @@ export function MinistriesPage() {
   const [editLeaderIds, setEditLeaderIds] = useState<number[]>([]);
   const [newLeaderIds, setNewLeaderIds] = useState<number[]>([]);
   const [pendingLeader, setPendingLeader] = useState<{ user: User; action: "approve" | "reject" } | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<{ ministry: Ministry; member: MinistryMember } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ ministry: Ministry; member: MinistryMember } | null>(null);
   const [membersTick, setMembersTick] = useState(0);
 
   const { user } = useAuth();
@@ -51,13 +53,13 @@ export function MinistriesPage() {
     [ministries, user?.id, isAdmin],
   );
   const membersMapQ = useAsyncData(async () => {
-    const map = new Map<number, User[]>();
+    const map = new Map<number, MinistryMember[]>();
     const list = editableKey ? editableKey.split(",").map(Number) : [];
     if (list.length === 0) return map;
     const results = await Promise.all(
-      list.map((id) => api.get<User[]>(`/ministries/${id}/members`).then((users) => ({ id, users }))),
+      list.map((id) => api.get<MinistryMember[]>(`/ministries/${id}/members`).then((members) => ({ id, members }))),
     );
-    for (const r of results) map.set(r.id, r.users);
+    for (const r of results) map.set(r.id, r.members);
     return map;
   }, [editableKey, membersTick]);
 
@@ -73,6 +75,30 @@ export function MinistriesPage() {
       await api.post(`/users/${u.id}/approve`, { action });
       toast(action === "approve" ? `${u.name} aprovado como líder!` : `${u.name} rejeitado.`);
       setPendingLeader(null);
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const removeMember = async () => {
+    if (!removeTarget) return;
+    try {
+      await api.delete(`/ministries/${removeTarget.ministry.id}/members/${removeTarget.member.id}`);
+      toast(`${removeTarget.member.name} removido do ministério.`);
+      setRemoveTarget(null);
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const deleteAccount = async () => {
+    if (!deleteTarget) return;
+    try {
+      await api.delete(`/users/${deleteTarget.member.id}`);
+      toast(`Conta de ${deleteTarget.member.name} excluída.`);
+      setDeleteTarget(null);
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
@@ -180,9 +206,12 @@ export function MinistriesPage() {
           <CardContent className="space-y-2">
             {pendingLeaders.map((u) => (
               <div key={u.id} className="flex items-center justify-between gap-3 rounded-xl border p-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{u.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                <div className="flex min-w-0 items-center gap-3">
+                  <PersonAvatar name={u.name} avatarUrl={u.avatar_url} />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{u.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                  </div>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Button size="sm" onClick={() => setPendingLeader({ user: u, action: "approve" })}>
@@ -254,6 +283,9 @@ export function MinistriesPage() {
                   status={membersMapQ.status}
                   error={membersMapQ.error}
                   onRetry={membersMapQ.reload}
+                  isAdmin={isAdmin}
+                  onRemove={(member) => setRemoveTarget({ ministry: m, member })}
+                  onDeleteAccount={(member) => setDeleteTarget({ ministry: m, member })}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground">
@@ -317,14 +349,27 @@ export function MinistriesPage() {
       <Dialog open={!!memberDialog} onClose={() => setMemberDialog(null)} title={`Vincular voluntário — ${memberDialog?.name ?? ""}`}>
         <div className="space-y-4">
           <Field label="Voluntário">
-            <Select value={memberUserId} onChange={(e) => setMemberUserId(e.target.value)}>
-              <option value="">Selecione...</option>
+            <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border p-2" role="listbox" aria-label="Voluntários">
               {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
+                <button
+                  key={u.id}
+                  type="button"
+                  role="option"
+                  aria-selected={memberUserId === String(u.id)}
+                  onClick={() => setMemberUserId(String(u.id))}
+                  className={`flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm ${
+                    memberUserId === String(u.id) ? "bg-primary/10" : "hover:bg-muted"
+                  }`}
+                >
+                  <PersonAvatar name={u.name} avatarUrl={u.avatar_url} className="h-7 w-7 text-[10px]" />
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium">{u.name}</span>
+                    <span className="block truncate text-xs text-muted-foreground">{u.email}</span>
+                  </span>
+                </button>
               ))}
-            </Select>
+              {users.length === 0 && <p className="p-2 text-sm text-muted-foreground">Nenhum usuário disponível.</p>}
+            </div>
           </Field>
           <Field label="Função">
             <Select value={memberRoleId} onChange={(e) => setMemberRoleId(e.target.value)}>
@@ -357,6 +402,34 @@ export function MinistriesPage() {
         onConfirm={() => pendingLeader && decideLeader(pendingLeader.user, pendingLeader.action)}
         onClose={() => setPendingLeader(null)}
       />
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        title="Remover membro"
+        description={
+          removeTarget
+            ? `Remover ${removeTarget.member.name} de ${removeTarget.ministry.name}? Os vínculos de função serão removidos. Se for líder, a liderança só é alterada pelo ADMIN em Editar.`
+            : undefined
+        }
+        confirmLabel="Remover"
+        destructive
+        onConfirm={removeMember}
+        onClose={() => setRemoveTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Excluir conta"
+        description={
+          deleteTarget
+            ? `Excluir permanentemente a conta de ${deleteTarget.member.name}? Escalas em que ele aparecia ficarão sem pessoa. Esta ação não pode ser desfeita.`
+            : undefined
+        }
+        confirmLabel="Excluir conta"
+        destructive
+        onConfirm={deleteAccount}
+        onClose={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }
@@ -367,12 +440,18 @@ function MemberList({
   status,
   error,
   onRetry,
+  isAdmin,
+  onRemove,
+  onDeleteAccount,
 }: {
   ministry: Ministry;
-  members?: User[];
+  members?: MinistryMember[];
   status: "loading" | "ready" | "error";
   error: string | null;
   onRetry: () => void;
+  isAdmin: boolean;
+  onRemove: (member: MinistryMember) => void;
+  onDeleteAccount: (member: MinistryMember) => void;
 }) {
   if (status === "error") {
     return <ErrorState message={error ?? "Erro"} onRetry={onRetry} className="border-destructive/30" />;
@@ -392,12 +471,50 @@ function MemberList({
     <div className="space-y-2">
       <p className="text-xs font-medium text-muted-foreground">Membros ({list.length}) — {ministry.name}</p>
       {list.map((m) => (
-        <div key={m.id} className="flex items-center justify-between rounded-xl border p-3 text-sm">
-          <div>
-            <p className="font-medium">{m.name}</p>
-            <p className="text-xs text-muted-foreground">{m.email}</p>
+        <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl border p-3 text-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <PersonAvatar name={m.name} avatarUrl={m.avatar_url} />
+            <div className="min-w-0">
+              <p className="flex items-center gap-1.5 font-medium">
+                <span className="truncate">{m.name}</span>
+                {m.is_leader && (
+                  <Badge variant="outline" className="shrink-0 gap-1 text-primary">
+                    <Crown size={10} /> Líder
+                  </Badge>
+                )}
+              </p>
+              <p className="truncate text-xs text-muted-foreground">{m.email}</p>
+              {m.roles.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {m.roles.map((r) => (
+                    <Badge key={r.id} variant="secondary" className="text-[10px]">
+                      {r.name}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          <Badge variant="outline">{roleLabel(m.role)}</Badge>
+          <div className="flex shrink-0 gap-1">
+            <button
+              type="button"
+              onClick={() => onRemove(m)}
+              aria-label={`Remover ${m.name} do ministério`}
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <UserMinus size={15} aria-hidden="true" />
+            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => onDeleteAccount(m)}
+                aria-label={`Excluir conta de ${m.name}`}
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Trash2 size={15} aria-hidden="true" />
+              </button>
+            )}
+          </div>
         </div>
       ))}
       {list.length === 0 && <p className="text-sm text-muted-foreground">Nenhum membro vinculado.</p>}
@@ -436,6 +553,7 @@ function LeaderPicker({
                 onChange={() => toggle(u.id)}
                 className="h-4 w-4 accent-[#C8102E]"
               />
+              <PersonAvatar name={u.name} avatarUrl={u.avatar_url} className="h-7 w-7 text-[10px]" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-medium">{u.name}</span>
                 <span className="block truncate text-xs text-muted-foreground">{u.email}</span>
