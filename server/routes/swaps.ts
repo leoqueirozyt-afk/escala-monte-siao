@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
 import { requireAuth, requireRole, leaderMinistryIds, type AppVariables } from "../lib/auth.js";
+import { notifyUser, schedulePush } from "../lib/push.js";
 
 export const swapRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -49,7 +50,7 @@ swapRoutes.post("/", async (c) => {
   const { schedule_id, target_user_id } = await c.req.json().catch(() => ({}));
   if (!schedule_id) return c.json({ error: "schedule_id obrigatório" }, 400);
   const schedule = await c.env.DB.prepare(
-    "SELECT s.*, e.event_date FROM schedules s JOIN events e ON e.id = s.event_id WHERE s.id = ? AND s.user_id = ?",
+    "SELECT s.*, e.title AS event_title, e.event_date FROM schedules s JOIN events e ON e.id = s.event_id WHERE s.id = ? AND s.user_id = ?",
   )
     .bind(schedule_id, user.sub)
     .first<any>();
@@ -78,6 +79,18 @@ swapRoutes.post("/", async (c) => {
   )
     .bind(schedule_id, user.sub, target_user_id ?? null)
     .run();
+  if (target_user_id) {
+    const who = await c.env.DB.prepare("SELECT name FROM users WHERE id = ?").bind(user.sub).first<any>();
+    const d = String(schedule.event_date ?? "");
+    schedulePush(
+      c,
+      notifyUser(c.env, Number(target_user_id), {
+        title: "Pedido de troca",
+        body: `${who?.name ?? "Alguém"} quer trocar com você: ${schedule.event_title} • ${d.slice(8, 10)}/${d.slice(5, 7)}`,
+        url: "/trocas",
+      }),
+    );
+  }
   return c.json({ id: r.meta.last_row_id }, 201);
 });
 
@@ -124,5 +137,19 @@ swapRoutes.post("/:id/decision", requireRole("ADMIN", "LEADER"), async (c) => {
   } else {
     await c.env.DB.prepare("UPDATE swap_requests SET status = 'REJECTED' WHERE id = ?").bind(id).run();
   }
+  const ev = await c.env.DB.prepare(
+    "SELECT e.title, e.event_date FROM schedules s JOIN events e ON e.id = s.event_id WHERE s.id = ?",
+  )
+    .bind(swap.schedule_id)
+    .first<any>();
+  const d = String(ev?.event_date ?? "");
+  schedulePush(
+    c,
+    notifyUser(c.env, Number(swap.requester_id), {
+      title: decision === "APPROVED" ? "Troca aprovada" : "Troca recusada",
+      body: `${ev?.title ?? "Escala"} • ${d.slice(8, 10)}/${d.slice(5, 7)}`,
+      url: "/trocas",
+    }),
+  );
   return c.json({ ok: true });
 });

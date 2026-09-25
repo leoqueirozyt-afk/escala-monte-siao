@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
 import { requireAuth, requireRole, leaderMinistryIds, type AppVariables } from "../lib/auth.js";
 import { attachGroups } from "../lib/voice.js";
+import { notifyUser, schedulePush } from "../lib/push.js";
 
 export const scheduleRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -134,6 +135,18 @@ scheduleRoutes.post("/", requireRole("ADMIN", "LEADER"), async (c) => {
   )
     .bind(event_id, role_id, user_id ?? null, "PENDING", notes ?? null)
     .run();
+  if (user_id) {
+    const ev = await c.env.DB.prepare("SELECT title, event_date FROM events WHERE id = ?").bind(event_id).first<any>();
+    const d = String(ev?.event_date ?? "");
+    schedulePush(
+      c,
+      notifyUser(c.env, Number(user_id), {
+        title: "Você foi escalado",
+        body: `${ev?.title ?? "Escala"} • ${d.slice(8, 10)}/${d.slice(5, 7)}`,
+        url: "/agenda",
+      }),
+    );
+  }
   return c.json({ id: r.meta.last_row_id }, 201);
 });
 
@@ -192,6 +205,18 @@ scheduleRoutes.patch("/:id", requireRole("ADMIN", "LEADER"), async (c) => {
       c.env.DB.prepare("DELETE FROM schedule_group_members WHERE schedule_id = ?").bind(id),
       c.env.DB.prepare("UPDATE schedules SET user_id = ?, group_id = NULL, status = 'PENDING' WHERE id = ?").bind(user_id, id),
     ]);
+    const ev = await c.env.DB.prepare("SELECT title, event_date FROM events WHERE id = ?")
+      .bind(schedule.event_id)
+      .first<any>();
+    const d = String(ev?.event_date ?? "");
+    schedulePush(
+      c,
+      notifyUser(c.env, Number(user_id), {
+        title: "Você foi escalado",
+        body: `${ev?.title ?? "Escala"} • ${d.slice(8, 10)}/${d.slice(5, 7)}`,
+        url: "/agenda",
+      }),
+    );
     return c.json({ ok: true });
   }
   if (user_id === null) {

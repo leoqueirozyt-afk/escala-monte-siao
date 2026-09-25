@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
 import { requireAuth, type AppVariables } from "../lib/auth.js";
+import { notifyVisibleSubscribers, schedulePush } from "../lib/push.js";
 
 export const noticeRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -94,6 +95,15 @@ noticeRoutes.post("/", async (c) => {
   )
     .bind(ministry_id ?? null, String(title).trim(), String(body).trim(), month, user.sub)
     .run();
+  const bodyText = String(body).trim();
+  schedulePush(
+    c,
+    notifyVisibleSubscribers(c.env, ministry_id != null ? Number(ministry_id) : null, {
+      title: String(title).trim(),
+      body: bodyText.length > 120 ? `${bodyText.slice(0, 120)}…` : bodyText,
+      url: "/avisos",
+    }),
+  );
   return c.json({ id: r.meta.last_row_id }, 201);
 });
 
