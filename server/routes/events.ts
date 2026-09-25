@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
 import { requireAuth, requireRole, leaderMinistryIds, type AppVariables } from "../lib/auth.js";
+import { attachGroups } from "../lib/voice.js";
 
 export const eventRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -24,17 +25,23 @@ eventRoutes.get("/", async (c) => {
   const ids = await leaderMinistryIds(c.env.DB, c.get("user"));
   const roleWhere = ids && ids.length > 0 ? `WHERE m.id IN (${ids.map(() => "?").join(",")})` : ids && ids.length === 0 ? "WHERE 1 = 0" : "";
   const slots = await c.env.DB.prepare(
-    `SELECT s.*, r.name AS role_name, m.name AS ministry_name, m.id AS ministry_id, u.name AS user_name, u.avatar_url AS user_avatar
+    `SELECT s.*, r.name AS role_name, m.name AS ministry_name, m.id AS ministry_id, u.name AS user_name, u.avatar_url AS user_avatar,
+       vcm.classification_id AS user_classification_id, vc.name AS user_classification, vc.color AS user_classification_color
      FROM schedules s
      JOIN roles r ON r.id = s.role_id
      JOIN ministries m ON m.id = r.ministry_id
-     LEFT JOIN users u ON u.id = s.user_id ${roleWhere}`,
+     LEFT JOIN users u ON u.id = s.user_id
+     LEFT JOIN voice_classification_members vcm ON vcm.user_id = u.id
+     LEFT JOIN voice_classifications vc ON vc.id = vcm.classification_id ${roleWhere}`,
   )
     .bind(...(ids ?? []))
     .all();
+  const slotList = slots.results as any[];
+  await attachGroups(c.env.DB, slotList);
+  for (const s of slotList) if (s.group_id == null) s.group = null;
   const result = (events.results as any[]).map((e) => ({
     ...e,
-    slots: (slots.results as any[]).filter((s) => s.event_id === e.id),
+    slots: slotList.filter((s) => s.event_id === e.id),
   }));
   return c.json(result);
 });
