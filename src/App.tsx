@@ -13,6 +13,7 @@ import { ReportsPage } from "./pages/ReportsPage";
 import { PlaylistsPage } from "./pages/PlaylistsPage";
 import { PlaylistDetailPage } from "./pages/PlaylistDetailPage";
 import { GruposPage } from "./pages/GruposPage";
+import { AvisosPage } from "./pages/AvisosPage";
 
 function Loading() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
                 <Route path="/agenda" element={<AgendaPage />} />
                 <Route path="/calendario" element={<CalendarPage />} />
                 <Route path="/perfil" element={<ProfilePage />} />
+                <Route path="/avisos" element={<AvisosPage />} />
                 <Route
                   path="/escala"
                   element={

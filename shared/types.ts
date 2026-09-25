@@ -41,6 +41,18 @@ export interface MinistryMember {
   classification: MemberClassification | null;
 }
 
+export interface Notice {
+  id: number;
+  ministry_id: number | null;
+  title: string;
+  body: string;
+  month: string;
+  created_by: number;
+  created_at: string;
+  author_name: string;
+  ministry_name: string | null;
+}
+
 export interface VoiceClassification {
   id: number;
   name: string;
