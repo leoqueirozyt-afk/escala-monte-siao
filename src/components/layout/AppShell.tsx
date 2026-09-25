@@ -11,6 +11,7 @@ import {
   BarChart3,
   Handshake,
   ListMusic,
+  Shapes,
   Menu,
 } from "lucide-react";
 import { useState } from "react";
@@ -34,33 +35,37 @@ const leaderNav = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { user, logout, ministries } = useAuth();
+  const { user, logout, ministries, leaderMinistryIds } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const leader = user ? isLeaderRole(user.role) : false;
   const admin = user?.role === "ADMIN";
   const showPlaylist = admin || ministries.some((m) => m.name === "Louvor");
   const playlistNav = showPlaylist ? [{ to: "/playlists", label: "Playlist", icon: ListMusic }] : [];
+  const showGrupos = admin || (leader && leaderMinistryIds.includes(1));
+  const gruposNav = showGrupos ? [{ to: "/grupos", label: "Grupos", icon: Shapes }] : [];
   const desktopNav = leader
     ? [
         { to: "/", label: "Início", icon: Home },
         { to: "/agenda", label: "Minha Agenda", icon: ClipboardList },
         { to: "/calendario", label: "Indisponibilidade", icon: CalendarOff },
         ...leaderNav,
+        ...gruposNav,
         ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]
-    : [...volunteerNav.slice(0, 3), ...playlistNav, volunteerNav[3]];
+    : [...volunteerNav.slice(0, 3), ...gruposNav, ...playlistNav, volunteerNav[3]];
 
   const bottomNav = leader
     ? [
         { to: "/", label: "Início", icon: Home },
         { to: "/agenda", label: "Agenda", icon: ClipboardList },
         { to: "/escala", label: "Escala", icon: CalendarDays },
+        ...gruposNav,
         ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]
-    : [...volunteerNav.slice(0, 3), ...playlistNav, volunteerNav[3]];
+    : [...volunteerNav.slice(0, 3), ...gruposNav, ...playlistNav, volunteerNav[3]];
 
   return (
     <div className="flex min-h-full">
