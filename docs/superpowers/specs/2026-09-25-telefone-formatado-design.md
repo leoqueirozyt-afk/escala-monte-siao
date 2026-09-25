@@ -19,7 +19,7 @@ O telefone é campo livre em todos os pontos de escrita e o login por telefone u
 
 ## Solução
 
-### S1 — Util compartilhado (`src/lib/phone.ts`)
+### S1 — Util compartilhado (`shared/phone.ts`)
 
 Importável pelo React e pelas rotas do servidor (mesmo módulo TS, padrão do repositório):
 
@@ -31,8 +31,8 @@ Importável pelo React e pelas rotas do servidor (mesmo módulo TS, padrão do r
 ### S2 — Servidor (autoridade; grava sempre formatado)
 
 - `POST /auth/register` (auth.ts:51): `phone` **obrigatório**; `formatPhone` → 400 `"Telefone inválido. Use o formato (11) 99999-9999."` → grava formatado. Aplica a membros (auth.ts:86) e líderes (auth.ts:70).
-- `POST /users` (users.ts:25): idem — obrigatório, valida, grava formatado.
-- `PUT /users/:id` (users.ts:43): se `phone` presente → valida/formata (400 se inválido); ausente/nulo → COALESCE mantém o atual.
+- `POST /users` (users.ts:25): idem — obrigatório, valida, grava formatado. **Consequência:** os 13 call sites de smoke que criam usuários via `POST /users` passam a enviar `phone` (derivado de `stamp` + sufixo por chamada).
+- `PUT /users/:id` (users.ts:43): se `phone` presente **e não-vazio** → valida/formata (400 se inválido); ausente/nulo/**vazio** → COALESCE mantém o atual (usuário legado sem telefone pode salvar o perfil sem preencher).
 - **Login** (auth.ts:22): comparação por dígitos — `REPLACE(REPLACE(REPLACE(REPLACE(phone, '(', ''), ')', ''), '-', ''), ' ', '') = ?` com `digits(identificador)` quando o identificador contém 10-11 dígitos; se contém `@`, casa só por email. Cobre dado gravado **formatado e legado cru**, sem migração.
 
 ### S3 — Frontend
