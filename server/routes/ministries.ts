@@ -189,10 +189,13 @@ ministryRoutes.get("/:id/members", async (c) => {
   const ministryId = Number(c.req.param("id"));
   if (!(await canManage(c, ministryId))) return c.json({ error: "Sem permissão para este ministério" }, 403);
   const links = await c.env.DB.prepare(
-    `SELECT u.id, u.name, u.email, u.avatar_url, r.id AS role_id, r.name AS role_name
+    `SELECT u.id, u.name, u.email, u.avatar_url, r.id AS role_id, r.name AS role_name,
+       vc.name AS classification_name, vc.color AS classification_color, vcm.classification_id
      FROM users u
      JOIN user_roles ur ON ur.user_id = u.id
      JOIN roles r ON r.id = ur.role_id
+     LEFT JOIN voice_classification_members vcm ON vcm.user_id = u.id
+     LEFT JOIN voice_classifications vc ON vc.id = vcm.classification_id
      WHERE r.ministry_id = ?`,
   )
     .bind(ministryId)
@@ -203,19 +206,57 @@ ministryRoutes.get("/:id/members", async (c) => {
     .bind(ministryId)
     .all();
   const leaderIds = new Set((leaders.results as any[]).map((l) => Number(l.id)));
-  const map = new Map<number, { id: number; name: string; email: string; avatar_url: string | null; roles: { id: number; name: string }[] }>();
+  const map = new Map<
+    number,
+    {
+      id: number;
+      name: string;
+      email: string;
+      avatar_url: string | null;
+      roles: { id: number; name: string }[];
+      classification: { id: number; name: string; color: string } | null;
+    }
+  >();
   for (const row of links.results as any[]) {
     let entry = map.get(Number(row.id));
     if (!entry) {
-      entry = { id: Number(row.id), name: row.name, email: row.email, avatar_url: row.avatar_url ?? null, roles: [] };
+      entry = {
+        id: Number(row.id),
+        name: row.name,
+        email: row.email,
+        avatar_url: row.avatar_url ?? null,
+        roles: [],
+        classification: row.classification_id
+          ? { id: Number(row.classification_id), name: String(row.classification_name), color: String(row.classification_color) }
+          : null,
+      };
       map.set(entry.id, entry);
     }
     entry.roles.push({ id: Number(row.role_id), name: String(row.role_name) });
   }
   for (const id of leaderIds) {
     if (!map.has(id)) {
-      const u = await c.env.DB.prepare("SELECT name, email, avatar_url FROM users WHERE id = ?").bind(id).first<any>();
-      if (u) map.set(id, { id, name: u.name, email: u.email, avatar_url: u.avatar_url ?? null, roles: [] });
+      const u = await c.env.DB.prepare(
+        `SELECT u.name, u.email, u.avatar_url, vcm.classification_id, vc.name AS classification_name, vc.color AS classification_color
+         FROM users u
+         LEFT JOIN voice_classification_members vcm ON vcm.user_id = u.id
+         LEFT JOIN voice_classifications vc ON vc.id = vcm.classification_id
+         WHERE u.id = ?`,
+      )
+        .bind(id)
+        .first<any>();
+      if (u) {
+        map.set(id, {
+          id,
+          name: u.name,
+          email: u.email,
+          avatar_url: u.avatar_url ?? null,
+          roles: [],
+          classification: u.classification_id
+            ? { id: Number(u.classification_id), name: String(u.classification_name), color: String(u.classification_color) }
+            : null,
+        });
+      }
     }
   }
   const result = [...map.values()]

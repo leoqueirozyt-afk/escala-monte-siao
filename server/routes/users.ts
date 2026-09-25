@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
-import { requireAuth, requireRole, type AppVariables } from "../lib/auth.js";
+import { requireAuth, requireRole, isLouvorLeader, type AppVariables } from "../lib/auth.js";
 import { hashPassword } from "../lib/password.js";
 
 export const userRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -72,6 +72,27 @@ userRoutes.put("/:id", async (c) => {
     await c.env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?").bind(hash, id).run();
   }
   return c.json({ ok: true });
+});
+
+userRoutes.put("/:id/voice-classification", async (c) => {
+  const caller = c.get("user");
+  if (!(await isLouvorLeader(c.env.DB, caller))) return c.json({ error: "Sem permissão" }, 403);
+  const userId = Number(c.req.param("id"));
+  const { classification_id } = await c.req.json().catch(() => ({}));
+  if (classification_id === null || classification_id === undefined) {
+    await c.env.DB.prepare("DELETE FROM voice_classification_members WHERE user_id = ?").bind(userId).run();
+    return c.json({ ok: true, classification_id: null });
+  }
+  const cls = await c.env.DB.prepare("SELECT id FROM voice_classifications WHERE id = ?")
+    .bind(Number(classification_id))
+    .first();
+  if (!cls) return c.json({ error: "Classificação inválida" }, 400);
+  await c.env.DB.prepare(
+    "INSERT INTO voice_classification_members (user_id, classification_id) VALUES (?, ?) ON CONFLICT(user_id) DO UPDATE SET classification_id = excluded.classification_id",
+  )
+    .bind(userId, Number(classification_id))
+    .run();
+  return c.json({ ok: true, classification_id: Number(classification_id) });
 });
 
 userRoutes.post("/:id/approve", requireRole("ADMIN"), async (c) => {
