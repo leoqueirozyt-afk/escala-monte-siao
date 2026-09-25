@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { CalendarPlus, ChevronDown, Pencil, Plus, UserPlus, Trash2, ListPlus, Mic, Music } from "lucide-react";
+import { CalendarPlus, ChevronDown, Pencil, Plus, UserPlus, Trash2, ListPlus, Mic, Music, X } from "lucide-react";
 import { api } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, monthKey } from "../lib/utils";
@@ -15,7 +15,7 @@ import { PersonAvatar } from "../components/ui/person-avatar";
 import { VoiceBadge } from "../components/VoiceBadge";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { Candidate, EventItem, Ministry, Schedule, VoiceGroup } from "../../shared/types";
+import type { Candidate, EventItem, Ministry, MinistryRole, Schedule, VoiceGroup } from "../../shared/types";
 
 export function ScheduleMatrixPage() {
   const { user } = useAuth();
@@ -112,6 +112,25 @@ export function ScheduleMatrixPage() {
         load();
       },
     });
+  };
+
+  const openRoleImpact = async (ministry: Ministry, role: MinistryRole) => {
+    try {
+      const impact = await api.get<{ escalas: number; membros: number }>(`/ministries/roles/${role.id}/impact`);
+      setConfirm({
+        title: "Excluir função",
+        description: `Excluir a função "${role.name}" de ${ministry.name}? As vagas dela serão removidas dos eventos (${impact.escalas} vaga(s)) — o resto da escala permanece — e a função sai de ${impact.membros} membro(s). Esta ação não pode ser desfeita.`,
+        confirmLabel: "Excluir função",
+        destructive: true,
+        run: async () => {
+          await api.delete(`/ministries/roles/${role.id}`);
+          toast(`Função "${role.name}" excluída.`);
+          load();
+        },
+      });
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
   };
 
   const openPicker = async (s: Schedule) => {
@@ -256,9 +275,16 @@ export function ScheduleMatrixPage() {
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
               {(ministries[0].roles ?? []).map((r) => (
-                <Badge key={r.id} variant="secondary">
-                  {r.name}
-                </Badge>
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => openRoleImpact(ministries[0], r)}
+                  aria-label={`Excluir função ${r.name} de ${ministries[0].name}`}
+                  className="inline-flex h-6 max-w-full items-center gap-1 rounded-full bg-secondary px-2 text-[11px] font-medium text-secondary-foreground hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span className="truncate">{r.name}</span>
+                  <X size={11} aria-hidden="true" />
+                </button>
               ))}
               {(ministries[0].roles ?? []).length === 0 && (
                 <p className="text-sm text-muted-foreground">Nenhuma função ainda — adicione a primeira abaixo.</p>
