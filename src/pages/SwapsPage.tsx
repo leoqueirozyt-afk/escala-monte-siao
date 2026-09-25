@@ -6,6 +6,7 @@ import { useAsyncData } from "../lib/use-async-data";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
+import { PersonAvatar } from "../components/ui/person-avatar";
 import { Badge } from "../components/ui/badge";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
@@ -58,15 +59,25 @@ export function SwapsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
+                    <PersonAvatar name={s.requester_name ?? "?"} avatarUrl={s.requester_avatar} />
                     <p className="font-semibold">{s.requester_name}</p>
                     <Badge variant="warning">Pendente</Badge>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {s.event_title} · {formatDateTime(s.event_date!)} · {s.role_name}
                   </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {s.target_user_name ? `Deseja trocar com ${s.target_user_name}` : "Sem alvo definido — líder escolhe"}
-                  </p>
+                  {s.target_user_name ? (
+                    <p className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <PersonAvatar
+                        name={s.target_user_name}
+                        avatarUrl={s.target_user_avatar}
+                        className="h-5 w-5 text-[9px]"
+                      />
+                      {`Deseja trocar com ${s.target_user_name}`}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">Sem alvo definido — líder escolhe</p>
+                  )}
                 </div>
               </div>
               <div className="mt-3 flex gap-2">

@@ -6,6 +6,7 @@ import { useAsyncData } from "../lib/use-async-data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Badge } from "../components/ui/badge";
+import { PersonAvatar } from "../components/ui/person-avatar";
 import { ErrorState, EmptyState } from "../components/ui/load-state";
 import type { ParticipationRow } from "../../shared/types";
 
@@ -85,7 +86,10 @@ export function ReportsPage() {
               {(report?.rows ?? []).map((r) => (
                 <div key={r.user_id} className="space-y-1">
                   <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 text-sm">
-                    <span className="min-w-0 truncate font-medium">{r.name}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <PersonAvatar name={r.name} avatarUrl={r.avatar_url} className="h-6 w-6 text-[9px]" />
+                      <span className="truncate font-medium">{r.name}</span>
+                    </span>
                     <span className="flex flex-wrap items-center justify-end gap-1.5">
                       <Badge variant="success">{r.confirmed} conf.</Badge>
                       <Badge variant="warning">{r.pending} pend.</Badge>
