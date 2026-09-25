@@ -49,6 +49,7 @@ export function MinistriesPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === "ADMIN";
   const canEdit = (m: Ministry) => isAdmin || (m.leader_ids ?? []).includes(user?.id ?? -1);
+  const isLider = (m: Ministry) => (m.leader_ids ?? []).includes(user?.id ?? -1);
 
   const ministriesQ = useAsyncData<Ministry[]>(() => api.get<Ministry[]>("/ministries?scope=all"), []);
   const classesQ = useAsyncData<{ classifications: VoiceClassification[] }>(
@@ -306,7 +307,7 @@ export function MinistriesPage() {
         <EmptyState title="Nenhum ministério" hint="Crie o primeiro ministério para começar." />
       ) : (
         ministries.map((m) => (
-          <Card key={m.id}>
+              <Card key={m.id} className={isLider(m) ? "border-success" : undefined}>
             <CardHeader className="flex-row items-start justify-between">
               <div>
                 <CardTitle>{m.name}</CardTitle>
