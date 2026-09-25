@@ -100,7 +100,7 @@ export function MiniCalendar({ markedDates = [], unavailableDates = [], selected
               <span
                 className={cn(
                   "absolute bottom-1 h-1.5 w-1.5 rounded-full",
-                  isMarked && !isSelected && "bg-primary",
+                  isMarked && !isSelected && "bg-success",
                   isMarked && isSelected && "bg-white",
                   !isMarked && isUnavail && "bg-destructive/70",
                   mode === "range-start" && "opacity-100",
@@ -112,7 +112,7 @@ export function MiniCalendar({ markedDates = [], unavailableDates = [], selected
       </div>
       <div className="mt-2 flex flex-wrap gap-3 px-1 text-xs text-muted-foreground">
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-primary" /> Escalado
+          <span className="h-2 w-2 rounded-full bg-success" /> Escalado
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-2 rounded-full bg-destructive/70" /> Indisponível
