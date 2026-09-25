@@ -15,7 +15,7 @@ Permissão: **líder do ministério** ou **ADMIN** (já garantida no backend por
 
 ## Decisões de design (aprovadas)
 
-- Deleção de função com escalas é **permitida, com aviso de impacto** (contagens de escalas + membros) — não bloqueada. Cascade `ON DELETE CASCADE` apaga `schedules` (escalas da função) e `user_roles` (vínculo da função com membros); `schedule_group_members` cai em cascata junto.
+- Deleção de função com escalas é **permitida, com aviso de impacto** (contagens de vagas + membros) — não bloqueada. Cascade `ON DELETE CASCADE` apaga **apenas as vagas (linhas) daquela função** em `schedules` (o evento e as demais funções da escala permanecem) e `user_roles` (vínculo da função com membros); `schedule_group_members` cai em cascata junto. Histórico passado é removido junto (sem distinção passado/futuro).
 - Nenhuma mudança de permissão: as rotas já checam `canManage` (líder do ministério ou ADMIN) e `assertScope`.
 - Padrão visual: chips clicáveis com **X** e `ConfirmDialog` (padrão já existente no projeto).
 
@@ -34,7 +34,7 @@ Permissão: **líder do ministério** ou **ADMIN** (já garantida no backend por
 ### Frontend
 
 - `MinistriesPage.tsx` — badges de função do card (só quando `canEdit(m)`): cada badge vira chip-clicável com X (alvo ≥ 24px). Ao clicar: busca `/impact` → `ConfirmDialog` destrutivo:
-  - *"Excluir a função "X" de [Ministério]? Isso apagará N escala(s) e remove a função de M membro(s). Esta ação não pode ser desfeita."*
+  - *"Excluir a função "X" de [Ministério]? As vagas dela serão removidas dos eventos (N vaga(s)) — o resto da escala permanece — e a função sai de M membro(s). Esta ação não pode ser desfeita."*
   - Confirmar → `DELETE /ministries/roles/:roleId` → toast → `load()`. Erro → toast de erro.
 - `ScheduleMatrixPage.tsx` — card "Meu ministério": mesmo chip com X, mesmo diálogo e endpoint de impacto.
 - Se `/impact` falhar → toast de erro, diálogo não abre.
