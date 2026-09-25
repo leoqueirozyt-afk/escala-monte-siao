@@ -127,8 +127,25 @@ ministryRoutes.put("/:id", async (c) => {
 });
 
 ministryRoutes.delete("/:id", requireRole("ADMIN"), async (c) => {
-  await c.env.DB.prepare("DELETE FROM ministries WHERE id = ?").bind(Number(c.req.param("id"))).run();
+  const r = await c.env.DB.prepare("DELETE FROM ministries WHERE id = ?").bind(Number(c.req.param("id"))).run();
+  if ((r.meta.changes ?? 0) === 0) return c.json({ error: "Ministério não encontrado" }, 404);
   return c.json({ ok: true });
+});
+
+ministryRoutes.get("/:id/impact", requireRole("ADMIN"), async (c) => {
+  const id = Number(c.req.param("id"));
+  const min = await c.env.DB.prepare("SELECT id FROM ministries WHERE id = ?").bind(id).first();
+  if (!min) return c.json({ error: "Ministério não encontrado" }, 404);
+  const counts = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM roles WHERE ministry_id = ?").bind(id),
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM schedules WHERE role_id IN (SELECT id FROM roles WHERE ministry_id = ?)").bind(id),
+    c.env.DB.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM user_roles WHERE role_id IN (SELECT id FROM roles WHERE ministry_id = ?)").bind(id),
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM ministry_leaders WHERE ministry_id = ?").bind(id),
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM voice_groups WHERE ministry_id = ?").bind(id),
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM notices WHERE ministry_id = ?").bind(id),
+  ]);
+  const n = (i: number) => Number((counts[i].results as any[])[0]?.n ?? 0);
+  return c.json({ funcoes: n(0), escalas: n(1), membros: n(2), lideres: n(3), grupos: n(4), avisos: n(5) });
 });
 
 ministryRoutes.post("/:id/roles", async (c) => {

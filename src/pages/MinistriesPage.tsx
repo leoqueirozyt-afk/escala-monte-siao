@@ -15,6 +15,8 @@ import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
 import type { Ministry, MinistryMember, MinistryRole, User, VoiceClassification } from "../../shared/types";
 
+type MinistryImpact = { funcoes: number; escalas: number; membros: number; lideres: number; grupos: number; avisos: number };
+
 export function MinistriesPage() {
   const [newMinistryOpen, setNewMinistryOpen] = useState(false);
   const [ministryName, setMinistryName] = useState("");
@@ -39,6 +41,8 @@ export function MinistriesPage() {
     role: MinistryRole;
     impact: { escalas: number; membros: number };
   } | null>(null);
+  const [ministryDeleteTarget, setMinistryDeleteTarget] = useState<{ ministry: Ministry; impact: MinistryImpact } | null>(null);
+  const [deletingMinistry, setDeletingMinistry] = useState(false);
   const [memberRoleTarget, setMemberRoleTarget] = useState<{
     ministry: Ministry;
     member: MinistryMember;
@@ -174,6 +178,30 @@ export function MinistriesPage() {
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const openMinistryImpact = async (ministry: Ministry) => {
+    try {
+      const impact = await api.get<MinistryImpact>(`/ministries/${ministry.id}/impact`);
+      setMinistryDeleteTarget({ ministry, impact });
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const deleteMinistry = async () => {
+    if (!ministryDeleteTarget) return;
+    setDeletingMinistry(true);
+    try {
+      await api.delete(`/ministries/${ministryDeleteTarget.ministry.id}`);
+      toast(`Ministério "${ministryDeleteTarget.ministry.name}" excluído.`);
+      setMinistryDeleteTarget(null);
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    } finally {
+      setDeletingMinistry(false);
     }
   };
 
@@ -334,6 +362,16 @@ export function MinistriesPage() {
                   <Badge variant="outline" className="text-muted-foreground">
                     Somente leitura
                   </Badge>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    onClick={() => openMinistryImpact(m)}
+                  >
+                    <Trash2 size={14} /> Excluir
+                  </Button>
                 )}
               </div>
             </CardHeader>
@@ -566,6 +604,21 @@ export function MinistriesPage() {
         destructive
         onConfirm={deleteRole}
         onClose={() => setRoleDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!ministryDeleteTarget}
+        title="Excluir ministério"
+        description={
+          ministryDeleteTarget
+            ? `Excluir o ministério "${ministryDeleteTarget.ministry.name}"? Serão removidos em cascata ${ministryDeleteTarget.impact.funcoes} função(ões), ${ministryDeleteTarget.impact.escalas} escala(s), ${ministryDeleteTarget.impact.membros} membro(s), ${ministryDeleteTarget.impact.lideres} líder(es), ${ministryDeleteTarget.impact.grupos} grupo(s) e ${ministryDeleteTarget.impact.avisos} aviso(s). Os cultos (eventos) permanecem. Esta ação não pode ser desfeita.`
+            : undefined
+        }
+        confirmLabel="Excluir ministério"
+        destructive
+        busy={deletingMinistry}
+        onConfirm={deleteMinistry}
+        onClose={() => setMinistryDeleteTarget(null)}
       />
 
       <ConfirmDialog

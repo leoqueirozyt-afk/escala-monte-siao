@@ -42,7 +42,7 @@ Líder (não-admin) nas duas rotas → 403.
   - 401 sem login nas 2 rotas;
   - `/impact` e delete como **líder** (carlos) → 403;
   - cria ministério + função + membro + escala (evento futuro próprio) como admin;
-  - `/impact` como admin → contagens corretas (funcoes:1, escalas:1, membros:1, …);
+  - `/impact` como admin → contagens corretas (funcoes:2 — papel "Líder" é auto-criado pelo POST /ministries —, escalas:1, membros:2 — líder + vol, …);
   - delete → 200; lista sem o ministério; escala não existe mais (GET /schedules mês do evento); evento permanece (events não cascateiam);
   - delete de id inexistente → 404; cleanup dos usuários/evento temporários.
 - typecheck + build + detector exit 0; regressão local (`smoke-avisos`, `smoke-leaders`); push + deploy com watch; suíte de 3 smokes em produção.
