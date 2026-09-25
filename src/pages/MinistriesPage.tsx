@@ -25,8 +25,8 @@ export function MinistriesPage() {
   const [editDialog, setEditDialog] = useState<Ministry | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
-  const [editLeaderId, setEditLeaderId] = useState("");
-  const [newLeaderId, setNewLeaderId] = useState("");
+  const [editLeaderIds, setEditLeaderIds] = useState<number[]>([]);
+  const [newLeaderIds, setNewLeaderIds] = useState<number[]>([]);
   const [pendingLeader, setPendingLeader] = useState<{ user: User; action: "approve" | "reject" } | null>(null);
   const [membersTick, setMembersTick] = useState(0);
 
@@ -74,13 +74,13 @@ export function MinistriesPage() {
       await api.post("/ministries", {
         name: ministryName,
         description: ministryDesc || null,
-        leader_id: newLeaderId ? Number(newLeaderId) : null,
+        leader_ids: newLeaderIds,
       });
       toast("Ministério criado!");
       setNewMinistryOpen(false);
       setMinistryName("");
       setMinistryDesc("");
-      setNewLeaderId("");
+      setNewLeaderIds([]);
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
@@ -91,7 +91,7 @@ export function MinistriesPage() {
     setEditDialog(m);
     setEditName(m.name);
     setEditDesc(m.description ?? "");
-    setEditLeaderId(m.leader_id ? String(m.leader_id) : "");
+    setEditLeaderIds(m.leader_ids ?? (m.leader_id ? [m.leader_id] : []));
   };
 
   const saveEdit = async () => {
@@ -100,7 +100,7 @@ export function MinistriesPage() {
       await api.put(`/ministries/${editDialog.id}`, {
         name: editName,
         description: editDesc || null,
-        leader_id: editLeaderId ? Number(editLeaderId) : null,
+        leader_ids: editLeaderIds,
       });
       toast("Ministério atualizado!");
       setEditDialog(null);
@@ -196,7 +196,7 @@ export function MinistriesPage() {
                 <CardDescription>{m.description ?? "Sem descrição"}</CardDescription>
                 <p className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
                   <Crown size={12} />
-                  {m.leader_name ? `Líder: ${m.leader_name}` : "Sem líder definido"}
+                  {m.leader_name ? `Líderes: ${m.leader_name}` : "Sem líder definido"}
                 </p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
@@ -242,17 +242,8 @@ export function MinistriesPage() {
           <Field label="Descrição">
             <Input value={ministryDesc} onChange={(e) => setMinistryDesc(e.target.value)} />
           </Field>
-          <Field label="Líder (definido pelo ADMIN)">
-            <Select value={newLeaderId} onChange={(e) => setNewLeaderId(e.target.value)}>
-              <option value="">Sem líder ainda</option>
-              {users
-                .filter((u) => u.role === "LEADER" || u.role === "ADMIN")
-                .map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({roleLabel(u.role)})
-                  </option>
-                ))}
-            </Select>
+          <Field label="Líderes (marque um ou mais)">
+            <LeaderPicker users={users} selected={newLeaderIds} onChange={setNewLeaderIds} />
           </Field>
           <Button className="w-full" onClick={createMinistry}>
             Criar
@@ -268,17 +259,8 @@ export function MinistriesPage() {
           <Field label="Descrição">
             <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
           </Field>
-          <Field label="Líder responsável (somente ADMIN define)">
-            <Select value={editLeaderId} onChange={(e) => setEditLeaderId(e.target.value)}>
-              <option value="">Sem líder</option>
-              {users
-                .filter((u) => u.role === "LEADER" || u.role === "ADMIN")
-                .map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({roleLabel(u.role)})
-                  </option>
-                ))}
-            </Select>
+          <Field label="Líderes (marque um ou mais)">
+            <LeaderPicker users={users} selected={editLeaderIds} onChange={setEditLeaderIds} />
           </Field>
           <Button className="w-full" onClick={saveEdit}>
             Salvar
@@ -384,6 +366,56 @@ function MemberList({
         </div>
       ))}
       {list.length === 0 && <p className="text-sm text-muted-foreground">Nenhum membro vinculado.</p>}
+    </div>
+  );
+}
+
+function LeaderPicker({
+  users,
+  selected,
+  onChange,
+}: {
+  users: User[];
+  selected: number[];
+  onChange: (ids: number[]) => void;
+}) {
+  const toggle = (id: number) => {
+    onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id]);
+  };
+  const promoting = users.filter((u) => selected.includes(u.id) && u.role === "VOLUNTEER");
+  return (
+    <div className="space-y-2">
+      <div className="max-h-60 space-y-1 overflow-y-auto rounded-xl border p-2">
+        {users.map((u) => {
+          const checked = selected.includes(u.id);
+          return (
+            <label
+              key={u.id}
+              className={`flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm ${
+                checked ? "bg-primary/10" : "hover:bg-muted"
+              }`}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => toggle(u.id)}
+                className="h-4 w-4 accent-[#C8102E]"
+              />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{u.name}</span>
+                <span className="block truncate text-xs text-muted-foreground">{u.email}</span>
+              </span>
+            </label>
+          );
+        })}
+        {users.length === 0 && <p className="p-2 text-sm text-muted-foreground">Nenhum usuário disponível.</p>}
+      </div>
+      {selected.length === 0 && <p className="text-xs text-muted-foreground">Nenhum líder selecionado</p>}
+      {promoting.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          Voluntários marcados serão promovidos a Líder: {promoting.map((u) => u.name).join(", ")}
+        </p>
+      )}
     </div>
   );
 }
