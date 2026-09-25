@@ -151,7 +151,7 @@ Em `src/pages/MinistriesPage.tsx`:
 
 ## Checklist de conclusão
 
-- [ ] Task 1: smoke `smoke-excluir-ministerio` escrito e verde local; typecheck/build/detector 0
-- [ ] Task 2: botão só admin + diálogo com contagens + regressão de 3 smokes verdes
-- [ ] Task 3: push/commit na main, deploy verde, 3 smokes de produção verdes
-- [ ] Task 4: checkboxes marcados, resumo PT entregue
+- [x] Task 1: smoke `smoke-excluir-ministerio` escrito e verde local (23/23); typecheck/build/detector 0
+- [x] Task 2: botão só admin + diálogo com contagens + regressão de 3 smokes verdes (23+28+17)
+- [x] Task 3: push `9a8d9b2`, run `36160170209` success, 3 smokes de produção verdes (68 checks)
+- [x] Task 4: checkboxes marcados, resumo PT entregue
