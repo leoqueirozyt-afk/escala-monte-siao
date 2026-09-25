@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, UserPlus, Pencil, Crown, UserCheck, UserX, ShieldCheck, UserMinus, Trash2 } from "lucide-react";
+import { Plus, UserPlus, Pencil, Crown, UserCheck, UserX, ShieldCheck, UserMinus, Trash2, X } from "lucide-react";
 import { api } from "../lib/api";
 import { useAsyncData } from "../lib/use-async-data";
 import { useAuth } from "../lib/auth";
@@ -13,7 +13,7 @@ import { PersonAvatar } from "../components/ui/person-avatar";
 import { VoiceBadge } from "../components/VoiceBadge";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { Ministry, MinistryMember, User, VoiceClassification } from "../../shared/types";
+import type { Ministry, MinistryMember, MinistryRole, User, VoiceClassification } from "../../shared/types";
 
 export function MinistriesPage() {
   const [newMinistryOpen, setNewMinistryOpen] = useState(false);
@@ -34,6 +34,11 @@ export function MinistriesPage() {
   const [deleteTarget, setDeleteTarget] = useState<{ ministry: Ministry; member: MinistryMember } | null>(null);
   const [voiceTarget, setVoiceTarget] = useState<MinistryMember | null>(null);
   const [voiceChoice, setVoiceChoice] = useState<string>("");
+  const [roleDeleteTarget, setRoleDeleteTarget] = useState<{
+    ministry: Ministry;
+    role: MinistryRole;
+    impact: { escalas: number; membros: number };
+  } | null>(null);
   const [membersTick, setMembersTick] = useState(0);
 
   const { user } = useAuth();
@@ -125,6 +130,27 @@ export function MinistriesPage() {
       });
       toast("Classificação salva!");
       setVoiceTarget(null);
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const openRoleImpact = async (ministry: Ministry, role: MinistryRole) => {
+    try {
+      const impact = await api.get<{ escalas: number; membros: number }>(`/ministries/roles/${role.id}/impact`);
+      setRoleDeleteTarget({ ministry, role, impact });
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const deleteRole = async () => {
+    if (!roleDeleteTarget) return;
+    try {
+      await api.delete(`/ministries/roles/${roleDeleteTarget.role.id}`);
+      toast(`Função "${roleDeleteTarget.role.name}" excluída.`);
+      setRoleDeleteTarget(null);
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
@@ -293,11 +319,24 @@ export function MinistriesPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex flex-wrap gap-2">
-                {(m.roles ?? []).map((r) => (
-                  <Badge key={r.id} variant="secondary">
-                    {r.name}
-                  </Badge>
-                ))}
+                {(m.roles ?? []).map((r) =>
+                  canEdit(m) ? (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => openRoleImpact(m, r)}
+                      aria-label={`Excluir função ${r.name} de ${m.name}`}
+                      className="inline-flex h-6 max-w-full items-center gap-1 rounded-full bg-secondary px-2 text-[11px] font-medium text-secondary-foreground hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="truncate">{r.name}</span>
+                      <X size={11} aria-hidden="true" />
+                    </button>
+                  ) : (
+                    <Badge key={r.id} variant="secondary">
+                      {r.name}
+                    </Badge>
+                  ),
+                )}
                 {(m.roles ?? []).length === 0 && (
                   <p className="text-sm text-muted-foreground">Nenhuma função cadastrada.</p>
                 )}
@@ -492,6 +531,20 @@ export function MinistriesPage() {
         destructive
         onConfirm={deleteAccount}
         onClose={() => setDeleteTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!roleDeleteTarget}
+        title="Excluir função"
+        description={
+          roleDeleteTarget
+            ? `Excluir a função "${roleDeleteTarget.role.name}" de ${roleDeleteTarget.ministry.name}? As vagas dela serão removidas dos eventos (${roleDeleteTarget.impact.escalas} vaga(s)) — o resto da escala permanece — e a função sai de ${roleDeleteTarget.impact.membros} membro(s). Esta ação não pode ser desfeita.`
+            : undefined
+        }
+        confirmLabel="Excluir função"
+        destructive
+        onConfirm={deleteRole}
+        onClose={() => setRoleDeleteTarget(null)}
       />
     </div>
   );
