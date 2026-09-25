@@ -9,6 +9,7 @@ import { unavailabilityRoutes } from "./routes/unavailability.js";
 import { swapRoutes } from "./routes/swaps.js";
 import { reportRoutes } from "./routes/reports.js";
 import { playlistRoutes } from "./routes/playlists.js";
+import { voiceRoutes } from "./routes/voice.js";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -35,5 +36,6 @@ app.route("/api/unavailability", unavailabilityRoutes);
 app.route("/api/swaps", swapRoutes);
 app.route("/api/reports", reportRoutes);
 app.route("/api/playlists", playlistRoutes);
+app.route("/api/voice", voiceRoutes);
 
 export default app;

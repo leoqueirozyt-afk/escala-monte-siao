@@ -117,7 +117,17 @@ authRoutes.get("/me", requireAuth, async (c) => {
         )
             .bind(payload.sub, payload.sub)
             .all();
-  return c.json({ user, ministries: ministries.results });
+  const leaderMinistryIdsList =
+    payload.role === "ADMIN"
+      ? (await c.env.DB.prepare("SELECT id FROM ministries ORDER BY id").all()).results.map((r: any) => Number(r.id))
+      : payload.role === "LEADER"
+        ? (
+            await c.env.DB.prepare("SELECT ministry_id FROM ministry_leaders WHERE user_id = ?")
+              .bind(payload.sub)
+              .all()
+          ).results.map((r: any) => Number(r.ministry_id))
+        : [];
+  return c.json({ user, ministries: ministries.results, leader_ministry_ids: leaderMinistryIdsList });
 });
 
 authRoutes.post("/logout", (c) => {

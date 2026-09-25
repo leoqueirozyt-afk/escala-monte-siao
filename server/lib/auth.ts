@@ -43,6 +43,18 @@ export async function leaderMinistryIds(db: D1Database, user: JwtPayload): Promi
   return rows.results.map((r: any) => Number(r.ministry_id));
 }
 
+export const LOUVOR_MINISTRY_ID = 1;
+
+export async function isLouvorLeader(db: D1Database, user: JwtPayload): Promise<boolean> {
+  if (user.role === "ADMIN") return true;
+  if (user.role !== "LEADER") return false;
+  const led = await db
+    .prepare("SELECT 1 FROM ministry_leaders WHERE ministry_id = ? AND user_id = ?")
+    .bind(LOUVOR_MINISTRY_ID, user.sub)
+    .first();
+  return !!led;
+}
+
 export function jsonError(c: Context, message: string, status: 400 | 403 | 404 | 409) {
   return c.json({ error: message }, status);
 }
