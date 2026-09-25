@@ -10,9 +10,10 @@ import { Dialog } from "../components/ui/dialog";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { Badge } from "../components/ui/badge";
 import { PersonAvatar } from "../components/ui/person-avatar";
+import { VoiceBadge } from "../components/VoiceBadge";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { Ministry, MinistryMember, User } from "../../shared/types";
+import type { Ministry, MinistryMember, User, VoiceClassification } from "../../shared/types";
 
 export function MinistriesPage() {
   const [newMinistryOpen, setNewMinistryOpen] = useState(false);
@@ -31,6 +32,8 @@ export function MinistriesPage() {
   const [pendingLeader, setPendingLeader] = useState<{ user: User; action: "approve" | "reject" } | null>(null);
   const [removeTarget, setRemoveTarget] = useState<{ ministry: Ministry; member: MinistryMember } | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<{ ministry: Ministry; member: MinistryMember } | null>(null);
+  const [voiceTarget, setVoiceTarget] = useState<MinistryMember | null>(null);
+  const [voiceChoice, setVoiceChoice] = useState<string>("");
   const [membersTick, setMembersTick] = useState(0);
 
   const { user } = useAuth();
@@ -38,6 +41,10 @@ export function MinistriesPage() {
   const canEdit = (m: Ministry) => isAdmin || (m.leader_ids ?? []).includes(user?.id ?? -1);
 
   const ministriesQ = useAsyncData<Ministry[]>(() => api.get<Ministry[]>("/ministries?scope=all"), []);
+  const classesQ = useAsyncData<{ classifications: VoiceClassification[] }>(
+    () => api.get("/voice/classifications"),
+    [],
+  );
   const usersQ = useAsyncData<User[]>(() => api.get<User[]>("/users"), []);
   const pendingQ = useAsyncData<User[]>(
     () => (isAdmin ? api.get<User[]>("/users?status=PENDING_LEADER") : Promise.resolve([])),
@@ -99,6 +106,25 @@ export function MinistriesPage() {
       await api.delete(`/users/${deleteTarget.member.id}`);
       toast(`Conta de ${deleteTarget.member.name} excluída.`);
       setDeleteTarget(null);
+      load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const openVoice = (m: MinistryMember) => {
+    setVoiceTarget(m);
+    setVoiceChoice(m.classification ? String(m.classification.id) : "");
+  };
+
+  const saveVoice = async () => {
+    if (!voiceTarget) return;
+    try {
+      await api.put(`/users/${voiceTarget.id}/voice-classification`, {
+        classification_id: voiceChoice ? Number(voiceChoice) : null,
+      });
+      toast("Classificação salva!");
+      setVoiceTarget(null);
       load();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
@@ -284,6 +310,7 @@ export function MinistriesPage() {
                   error={membersMapQ.error}
                   onRetry={membersMapQ.reload}
                   isAdmin={isAdmin}
+                  onClassify={(member) => openVoice(member)}
                   onRemove={(member) => setRemoveTarget({ ministry: m, member })}
                   onDeleteAccount={(member) => setDeleteTarget({ ministry: m, member })}
                 />
@@ -403,6 +430,42 @@ export function MinistriesPage() {
         onClose={() => setPendingLeader(null)}
       />
 
+      <Dialog
+        open={!!voiceTarget}
+        onClose={() => setVoiceTarget(null)}
+        title={`Classificação de voz — ${voiceTarget?.name ?? ""}`}
+      >
+        <div className="space-y-2" role="listbox" aria-label="Classificações">
+          <button
+            type="button"
+            role="option"
+            aria-selected={voiceChoice === ""}
+            onClick={() => setVoiceChoice("")}
+            className={`w-full rounded-lg p-3 text-left text-sm ${voiceChoice === "" ? "bg-primary/10" : "hover:bg-muted"}`}
+          >
+            Sem classificação
+          </button>
+          {(classesQ.data?.classifications ?? []).map((cls) => (
+            <button
+              key={cls.id}
+              type="button"
+              role="option"
+              aria-selected={voiceChoice === String(cls.id)}
+              onClick={() => setVoiceChoice(String(cls.id))}
+              className={`flex w-full items-center justify-between rounded-lg p-3 text-left text-sm ${
+                voiceChoice === String(cls.id) ? "bg-primary/10" : "hover:bg-muted"
+              }`}
+            >
+              <VoiceBadge name={cls.name} color={cls.color} />
+              <span className="text-xs text-muted-foreground">{cls.gender === "F" ? "Feminina" : "Masculina"}</span>
+            </button>
+          ))}
+        </div>
+        <Button className="mt-4 w-full" onClick={saveVoice}>
+          Salvar
+        </Button>
+      </Dialog>
+
       <ConfirmDialog
         open={!!removeTarget}
         title="Remover membro"
@@ -441,6 +504,7 @@ function MemberList({
   error,
   onRetry,
   isAdmin,
+  onClassify,
   onRemove,
   onDeleteAccount,
 }: {
@@ -450,6 +514,7 @@ function MemberList({
   error: string | null;
   onRetry: () => void;
   isAdmin: boolean;
+  onClassify: (member: MinistryMember) => void;
   onRemove: (member: MinistryMember) => void;
   onDeleteAccount: (member: MinistryMember) => void;
 }) {
@@ -493,6 +558,20 @@ function MemberList({
                   ))}
                 </div>
               )}
+              {ministry.name === "Louvor" &&
+                (m.classification ? (
+                  <button type="button" onClick={() => onClassify(m)} className="mt-1 block hover:opacity-80">
+                    <VoiceBadge name={m.classification.name} color={m.classification.color} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onClassify(m)}
+                    className="mt-1 text-xs text-muted-foreground underline hover:text-primary"
+                  >
+                    Classificar voz
+                  </button>
+                ))}
             </div>
           </div>
           <div className="flex shrink-0 gap-1">

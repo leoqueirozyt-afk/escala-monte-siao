@@ -6,8 +6,11 @@ import { useAuth } from "../lib/auth";
 import { roleLabel } from "../lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-import { Input, Field } from "../components/ui/input";
+import { Input, Field, Select } from "../components/ui/input";
 import { toast } from "../components/ui/toast";
+import { useAsyncData } from "../lib/use-async-data";
+import { VoiceBadge } from "../components/VoiceBadge";
+import type { VoiceClassification } from "../../shared/types";
 
 function fileToAvatar(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -38,7 +41,7 @@ function fileToAvatar(file: File): Promise<string> {
 }
 
 export function ProfilePage() {
-  const { user, logout, refresh } = useAuth();
+  const { user, logout, refresh, leaderMinistryIds } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [form, setForm] = useState({ name: "", email: "", phone: "", max_services_per_month: 4 });
@@ -46,6 +49,28 @@ export function ProfilePage() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [savingPhoto, setSavingPhoto] = useState(false);
+  const canEditVoice = user?.role === "ADMIN" || (leaderMinistryIds ?? []).includes(1);
+  const classesQ = useAsyncData<{ classifications: VoiceClassification[]; mine: number | null }>(
+    () => api.get("/voice/classifications"),
+    [],
+  );
+  const [voiceChoice, setVoiceChoice] = useState<string>("");
+
+  useEffect(() => {
+    if (classesQ.data) setVoiceChoice(classesQ.data.mine !== null ? String(classesQ.data.mine) : "");
+  }, [classesQ.data]);
+
+  const saveVoice = async (value: string) => {
+    setVoiceChoice(value);
+    try {
+      await api.put(`/users/${user!.id}/voice-classification`, {
+        classification_id: value ? Number(value) : null,
+      });
+      toast("Classificação salva!");
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Erro", "error");
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -164,6 +189,29 @@ export function ProfilePage() {
                 value={form.max_services_per_month}
                 onChange={(e) => setForm({ ...form, max_services_per_month: Number(e.target.value) })}
               />
+            </Field>
+            <Field label="Classificação de voz">
+              {canEditVoice ? (
+                <Select value={voiceChoice} onChange={(e) => saveVoice(e.target.value)}>
+                  <option value="">Sem classificação</option>
+                  {(classesQ.data?.classifications ?? []).map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.name} ({cls.gender === "F" ? "Feminina" : "Masculina"})
+                    </option>
+                  ))}
+                </Select>
+              ) : classesQ.data?.mine != null ? (
+                (() => {
+                  const mine = (classesQ.data?.classifications ?? []).find((c) => c.id === classesQ.data?.mine);
+                  return mine ? (
+                    <VoiceBadge name={mine.name} color={mine.color} />
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  );
+                })()
+              ) : (
+                <span className="text-sm text-muted-foreground">Sem classificação</span>
+              )}
             </Field>
             <Field label="Nova senha (opcional)">
               <Input
