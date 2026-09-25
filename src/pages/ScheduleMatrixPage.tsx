@@ -11,6 +11,7 @@ import { Dialog } from "../components/ui/dialog";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { Badge } from "../components/ui/badge";
 import { StatusBadge } from "../components/StatusBadge";
+import { PersonAvatar } from "../components/ui/person-avatar";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
 import type { Candidate, EventItem, Ministry, Schedule } from "../../shared/types";
@@ -319,6 +320,16 @@ export function ScheduleMatrixPage() {
                     >
                       <div className="flex min-w-0 items-center gap-3">
                         <span className={`h-3 w-3 shrink-0 rounded-full ${dot}`} />
+                        {s.user_id ? (
+                          <PersonAvatar name={s.user_name ?? ""} avatarUrl={s.user_avatar} className="h-8 w-8 text-xs" />
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-dashed border-muted-foreground/50 text-xs text-muted-foreground"
+                          >
+                            ?
+                          </span>
+                        )}
                         <div className="min-w-0">
                           <p className="text-sm font-medium">{s.role_name}</p>
                           <p className="truncate text-xs text-muted-foreground">
@@ -378,15 +389,29 @@ export function ScheduleMatrixPage() {
             ) : (
               <>
                 <Field label="Voluntário">
-                  <Select value={chosenUser} onChange={(e) => setChosenUser(e.target.value)}>
-                    <option value="">Selecione...</option>
+                  <div className="max-h-60 space-y-1 overflow-y-auto rounded-xl border p-2" role="listbox" aria-label="Candidatos">
                     {picker.candidates.map((c) => (
-                      <option key={c.user_id} value={c.user_id}>
-                        {c.name} · {c.services_this_month}/{c.max_services_per_month} no mês
-                        {c.services_this_month >= c.max_services_per_month ? " (limite)" : ""}
-                      </option>
+                      <button
+                        key={c.user_id}
+                        type="button"
+                        role="option"
+                        aria-selected={chosenUser === String(c.user_id)}
+                        onClick={() => setChosenUser(String(c.user_id))}
+                        className={`flex w-full items-center gap-3 rounded-lg p-2 text-left text-sm ${
+                          chosenUser === String(c.user_id) ? "bg-primary/10" : "hover:bg-muted"
+                        }`}
+                      >
+                        <PersonAvatar name={c.name} avatarUrl={c.avatar_url} className="h-8 w-8 text-xs" />
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{c.name}</span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {c.services_this_month}/{c.max_services_per_month} no mês
+                            {c.services_this_month >= c.max_services_per_month ? " (limite)" : ""}
+                          </span>
+                        </span>
+                      </button>
                     ))}
-                  </Select>
+                  </div>
                 </Field>
                 <Button className="w-full" onClick={assign} disabled={!chosenUser}>
                   Escalar voluntário
