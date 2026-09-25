@@ -19,6 +19,7 @@ export interface Ministry {
   name: string;
   description: string | null;
   leader_id: number | null;
+  leader_ids?: number[];
   leader_name?: string | null;
   roles?: MinistryRole[];
   member_count?: number;
