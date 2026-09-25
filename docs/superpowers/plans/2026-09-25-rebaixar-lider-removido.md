@@ -114,7 +114,7 @@ Reiniciar dev server → **smoke-rebaixa 100% verde** + suíte local 10/10 + typ
 
 ## Checklist de conclusão
 
-- [ ] Task 1: helper + 2 gatilhos; `smoke-rebaixa-lider` cenários 1,3-8 verdes; suíte local 10/10
-- [ ] Task 2: `/auth/me` renova JWT + branches com `user.role`; smoke 100% verde; typecheck/build/detector 0
-- [ ] Task 3: push, run CI success, 10 smokes de produção verdes
-- [ ] Task 4: checkboxes, resumo PT entregue
+- [x] Task 1: helper `rebaixarSeOrfao` + 2 gatilhos; `smoke-rebaixa-lider` vermelho (21/32) → cenários 1,3-8 verdes (29/32); suíte local 11/11
+- [x] Task 2: `/auth/me` renova JWT + branches com `user.role`; smoke **32/32**; typecheck/build/detector 0 (2 correções só de tipo: `.first<any>` no D1 tipado vs `c: any`)
+- [x] Task 3: push `136bf01`, run CI `36171086400` success, 11 smokes de produção verdes
+- [x] Task 4: checkboxes, resumo PT entregue
