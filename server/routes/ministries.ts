@@ -54,7 +54,7 @@ async function applyLeaders(c: any, ministryId: number, leaderIds: number[]): Pr
 
 ministryRoutes.get("/", requireRole("ADMIN", "LEADER"), async (c) => {
   const user = c.get("user");
-  const ids = await leaderMinistryIds(c.env.DB, user);
+  const ids = c.req.query("scope") === "all" ? null : await leaderMinistryIds(c.env.DB, user);
   const where = ids ? `WHERE m.id IN (${ids.map(() => "?").join(",")})` : "";
   const rows = await c.env.DB.prepare(
     `SELECT m.*, u.name AS leader_name,
@@ -110,13 +110,15 @@ ministryRoutes.post("/", requireRole("ADMIN"), async (c) => {
   return c.json({ id: ministryId, name, description, leader_id: ids[0] ?? null }, 201);
 });
 
-ministryRoutes.put("/:id", requireRole("ADMIN"), async (c) => {
+ministryRoutes.put("/:id", async (c) => {
   const id = Number(c.req.param("id"));
+  const user = c.get("user");
+  if (!(await canManage(c, id))) return c.json({ error: "Sem permissão para este ministério" }, 403);
   const { name, description, leader_id, leader_ids } = await c.req.json().catch(() => ({}));
   await c.env.DB.prepare("UPDATE ministries SET name = COALESCE(?, name), description = COALESCE(?, description) WHERE id = ?")
     .bind(name ?? null, description ?? null, id)
     .run();
-  if (leader_ids !== undefined || leader_id !== undefined) {
+  if (user.role === "ADMIN" && (leader_ids !== undefined || leader_id !== undefined)) {
     const ids: number[] = Array.isArray(leader_ids) ? leader_ids.map(Number) : leader_id ? [Number(leader_id)] : [];
     const err = await applyLeaders(c, id, ids);
     if (err) return c.json({ error: err }, 400);
