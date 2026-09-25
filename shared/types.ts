@@ -38,6 +38,53 @@ export interface MinistryMember {
   avatar_url: string | null;
   roles: { id: number; name: string }[];
   is_leader: boolean;
+  classification: MemberClassification | null;
+}
+
+export interface VoiceClassification {
+  id: number;
+  name: string;
+  gender: "F" | "M";
+  color: string;
+  sort_order: number;
+}
+
+export interface MemberClassification {
+  id: number;
+  name: string;
+  color: string;
+}
+
+export interface VoiceGroupMember {
+  user_id: number;
+  name: string;
+  avatar_url: string | null;
+  classification: string | null;
+  classification_color: string | null;
+}
+
+export interface VoiceGroup {
+  id: number;
+  ministry_id: number;
+  kind: "VOZ" | "MUSICO";
+  name: string;
+  members: VoiceGroupMember[];
+}
+
+export interface ScheduleGroupMember {
+  user_id: number;
+  name: string;
+  avatar_url: string | null;
+  classification: string | null;
+  classification_color: string | null;
+  status: ScheduleStatus;
+}
+
+export interface ScheduleGroup {
+  id: number;
+  name: string;
+  kind: string;
+  members: ScheduleGroupMember[];
 }
 
 export interface EventItem {
@@ -62,6 +109,9 @@ export interface Schedule {
   ministry_name?: string;
   user_name?: string | null;
   user_avatar?: string | null;
+  user_classification?: string | null;
+  user_classification_color?: string | null;
+  group?: ScheduleGroup | null;
 }
 
 export interface Unavailability {

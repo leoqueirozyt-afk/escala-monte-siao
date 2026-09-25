@@ -5,6 +5,7 @@ import type { Ministry, User } from "../../shared/types";
 interface AuthState {
   user: User | null;
   ministries: Ministry[];
+  leaderMinistryIds: number[];
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (data: {
@@ -25,16 +26,19 @@ const AuthContext = createContext<AuthState | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [ministries, setMinistries] = useState<Ministry[]>([]);
+  const [leaderMinistryIds, setLeaderMinistryIds] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const data = await api.get<{ user: User; ministries: Ministry[] }>("/auth/me");
+      const data = await api.get<{ user: User; ministries: Ministry[]; leader_ministry_ids: number[] }>("/auth/me");
       setUser(data.user);
       setMinistries(data.ministries);
+      setLeaderMinistryIds(data.leader_ministry_ids ?? []);
     } catch {
       setUser(null);
       setMinistries([]);
+      setLeaderMinistryIds([]);
     } finally {
       setLoading(false);
     }
@@ -73,11 +77,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await api.post("/auth/logout");
     setUser(null);
     setMinistries([]);
+    setLeaderMinistryIds([]);
   }, []);
 
   const value = useMemo(
-    () => ({ user, ministries, loading, login, register, logout, refresh }),
-    [user, ministries, loading, login, register, logout, refresh],
+    () => ({ user, ministries, leaderMinistryIds, loading, login, register, logout, refresh }),
+    [user, ministries, leaderMinistryIds, loading, login, register, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
