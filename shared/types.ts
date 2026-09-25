@@ -31,6 +31,15 @@ export interface MinistryRole {
   name: string;
 }
 
+export interface MinistryMember {
+  id: number;
+  name: string;
+  email: string;
+  avatar_url: string | null;
+  roles: { id: number; name: string }[];
+  is_leader: boolean;
+}
+
 export interface EventItem {
   id: number;
   title: string;
@@ -52,6 +61,7 @@ export interface Schedule {
   role_name?: string;
   ministry_name?: string;
   user_name?: string | null;
+  user_avatar?: string | null;
 }
 
 export interface Unavailability {
@@ -75,6 +85,8 @@ export interface SwapRequest {
   event_date?: string;
   role_name?: string;
   current_user_name?: string | null;
+  requester_avatar?: string | null;
+  target_user_avatar?: string | null;
 }
 
 export interface Candidate {
@@ -83,6 +95,7 @@ export interface Candidate {
   email: string;
   services_this_month: number;
   max_services_per_month: number;
+  avatar_url?: string | null;
 }
 
 export interface ParticipationRow {
@@ -92,6 +105,7 @@ export interface ParticipationRow {
   pending: number;
   declined: number;
   total: number;
+  avatar_url?: string | null;
 }
 
 export interface PlaylistSummary {
