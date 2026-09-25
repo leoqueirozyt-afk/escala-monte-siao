@@ -173,21 +173,53 @@ ministryRoutes.delete("/:id/members/:userId/:roleId", async (c) => {
   return c.json({ ok: true });
 });
 
+ministryRoutes.delete("/:id/members/:userId", async (c) => {
+  const ministryId = Number(c.req.param("id"));
+  if (!(await canManage(c, ministryId))) return c.json({ error: "Sem permissão para este ministério" }, 403);
+  const userId = Number(c.req.param("userId"));
+  await c.env.DB.prepare(
+    "DELETE FROM user_roles WHERE user_id = ? AND role_id IN (SELECT id FROM roles WHERE ministry_id = ?)",
+  )
+    .bind(userId, ministryId)
+    .run();
+  return c.json({ ok: true });
+});
+
 ministryRoutes.get("/:id/members", async (c) => {
   const ministryId = Number(c.req.param("id"));
   if (!(await canManage(c, ministryId))) return c.json({ error: "Sem permissão para este ministério" }, 403);
-  const rows = await c.env.DB.prepare(
-    `SELECT u.id, u.name, u.email, u.role FROM users u
+  const links = await c.env.DB.prepare(
+    `SELECT u.id, u.name, u.email, u.avatar_url, r.id AS role_id, r.name AS role_name
+     FROM users u
      JOIN user_roles ur ON ur.user_id = u.id
      JOIN roles r ON r.id = ur.role_id
-     WHERE r.ministry_id = ?
-     UNION
-     SELECT u.id, u.name, u.email, u.role FROM users u
-     JOIN ministry_leaders ml ON ml.user_id = u.id
-     WHERE ml.ministry_id = ?
-     ORDER BY name`,
+     WHERE r.ministry_id = ?`,
   )
-    .bind(ministryId, ministryId)
+    .bind(ministryId)
     .all();
-  return c.json(rows.results);
+  const leaders = await c.env.DB.prepare(
+    "SELECT u.id FROM users u JOIN ministry_leaders ml ON ml.user_id = u.id WHERE ml.ministry_id = ?",
+  )
+    .bind(ministryId)
+    .all();
+  const leaderIds = new Set((leaders.results as any[]).map((l) => Number(l.id)));
+  const map = new Map<number, { id: number; name: string; email: string; avatar_url: string | null; roles: { id: number; name: string }[] }>();
+  for (const row of links.results as any[]) {
+    let entry = map.get(Number(row.id));
+    if (!entry) {
+      entry = { id: Number(row.id), name: row.name, email: row.email, avatar_url: row.avatar_url ?? null, roles: [] };
+      map.set(entry.id, entry);
+    }
+    entry.roles.push({ id: Number(row.role_id), name: String(row.role_name) });
+  }
+  for (const id of leaderIds) {
+    if (!map.has(id)) {
+      const u = await c.env.DB.prepare("SELECT name, email, avatar_url FROM users WHERE id = ?").bind(id).first<any>();
+      if (u) map.set(id, { id, name: u.name, email: u.email, avatar_url: u.avatar_url ?? null, roles: [] });
+    }
+  }
+  const result = [...map.values()]
+    .map((m) => ({ ...m, is_leader: leaderIds.has(m.id) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return c.json(result);
 });
