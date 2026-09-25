@@ -73,7 +73,7 @@ foreach ($size in @(192, 512)) {
 - [ ] **Step 2: Executar**
 
 Run: `powershell -NoProfile -ExecutionPolicy Bypass -File "$env:TEMP\opencode\gen-icons.ps1"`
-Expected: `gerado icon-192.png (170 px brasão, margem 11 px)` e `gerado icon-512.png (450 px brasão, margem 31 px)`
+Expected: `gerado icon-192.png (150 px brasão, margem 21 px)` e `gerado icon-512.png (400 px brasão, margem 56 px)`
 
 - [ ] **Step 3: Verificar dimensões**
 
