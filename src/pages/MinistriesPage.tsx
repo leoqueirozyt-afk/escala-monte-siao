@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Plus, UserPlus, Pencil, Crown, UserCheck, UserX, ShieldCheck } from "lucide-react";
 import { api } from "../lib/api";
 import { useAsyncData } from "../lib/use-async-data";
+import { useAuth } from "../lib/auth";
 import { roleLabel } from "../lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Button } from "../components/ui/button";
@@ -30,25 +31,35 @@ export function MinistriesPage() {
   const [pendingLeader, setPendingLeader] = useState<{ user: User; action: "approve" | "reject" } | null>(null);
   const [membersTick, setMembersTick] = useState(0);
 
-  const ministriesQ = useAsyncData<Ministry[]>(() => api.get<Ministry[]>("/ministries"), []);
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
+  const canEdit = (m: Ministry) => isAdmin || (m.leader_ids ?? []).includes(user?.id ?? -1);
+
+  const ministriesQ = useAsyncData<Ministry[]>(() => api.get<Ministry[]>("/ministries?scope=all"), []);
   const usersQ = useAsyncData<User[]>(() => api.get<User[]>("/users"), []);
-  const pendingQ = useAsyncData<User[]>(() => api.get<User[]>("/users?status=PENDING_LEADER"), []);
+  const pendingQ = useAsyncData<User[]>(
+    () => (isAdmin ? api.get<User[]>("/users?status=PENDING_LEADER") : Promise.resolve([])),
+    [isAdmin],
+  );
 
   const ministries = ministriesQ.data ?? [];
   const users = usersQ.data ?? [];
   const pendingLeaders = pendingQ.data ?? [];
 
-  const ministriesKey = useMemo(() => ministries.map((m) => m.id).join(","), [ministries]);
+  const editableKey = useMemo(
+    () => ministries.filter(canEdit).map((m) => m.id).join(","),
+    [ministries, user?.id, isAdmin],
+  );
   const membersMapQ = useAsyncData(async () => {
     const map = new Map<number, User[]>();
-    const list = ministriesKey ? ministriesKey.split(",").map(Number) : [];
+    const list = editableKey ? editableKey.split(",").map(Number) : [];
     if (list.length === 0) return map;
     const results = await Promise.all(
       list.map((id) => api.get<User[]>(`/ministries/${id}/members`).then((users) => ({ id, users }))),
     );
     for (const r of results) map.set(r.id, r.users);
     return map;
-  }, [ministriesKey, membersTick]);
+  }, [editableKey, membersTick]);
 
   const load = () => {
     ministriesQ.reload();
@@ -100,7 +111,7 @@ export function MinistriesPage() {
       await api.put(`/ministries/${editDialog.id}`, {
         name: editName,
         description: editDesc || null,
-        leader_ids: editLeaderIds,
+        ...(isAdmin ? { leader_ids: editLeaderIds } : {}),
       });
       toast("Ministério atualizado!");
       setEditDialog(null);
@@ -145,14 +156,20 @@ export function MinistriesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold">Ministérios</h1>
-          <p className="text-xs text-muted-foreground">Área exclusiva do ADMIN — defina líderes e funções</p>
+          <p className="text-xs text-muted-foreground">
+            {isAdmin
+              ? "Área do ADMIN — defina líderes e funções em todos os ministérios"
+              : "Você edita apenas o ministério que lidera — os demais são somente leitura"}
+          </p>
         </div>
-        <Button size="sm" onClick={() => setNewMinistryOpen(true)}>
-          <Plus size={16} /> Novo
-        </Button>
+        {isAdmin && (
+          <Button size="sm" onClick={() => setNewMinistryOpen(true)}>
+            <Plus size={16} /> Novo
+          </Button>
+        )}
       </div>
 
-      {pendingLeaders.length > 0 && (
+      {isAdmin && pendingLeaders.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -200,15 +217,23 @@ export function MinistriesPage() {
                 </p>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                <Button size="sm" variant="outline" onClick={() => openEdit(m)}>
-                  <Pencil size={14} /> Editar
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setRoleDialog(m)}>
-                  <Plus size={14} /> Função
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setMemberDialog(m)}>
-                  <UserPlus size={14} /> Membro
-                </Button>
+                {canEdit(m) ? (
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => openEdit(m)}>
+                      <Pencil size={14} /> Editar
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setRoleDialog(m)}>
+                      <Plus size={14} /> Função
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setMemberDialog(m)}>
+                      <UserPlus size={14} /> Membro
+                    </Button>
+                  </>
+                ) : (
+                  <Badge variant="outline" className="text-muted-foreground">
+                    Somente leitura
+                  </Badge>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -222,13 +247,19 @@ export function MinistriesPage() {
                   <p className="text-sm text-muted-foreground">Nenhuma função cadastrada.</p>
                 )}
               </div>
-              <MemberList
-                ministry={m}
-                members={membersMapQ.data?.get(m.id)}
-                status={membersMapQ.status}
-                error={membersMapQ.error}
-                onRetry={membersMapQ.reload}
-              />
+              {canEdit(m) ? (
+                <MemberList
+                  ministry={m}
+                  members={membersMapQ.data?.get(m.id)}
+                  status={membersMapQ.status}
+                  error={membersMapQ.error}
+                  onRetry={membersMapQ.reload}
+                />
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Somente o líder deste ministério ou o ADMIN pode ver e gerenciar membros.
+                </p>
+              )}
             </CardContent>
           </Card>
         ))
@@ -259,9 +290,13 @@ export function MinistriesPage() {
           <Field label="Descrição">
             <Input value={editDesc} onChange={(e) => setEditDesc(e.target.value)} />
           </Field>
-          <Field label="Líderes (marque um ou mais)">
-            <LeaderPicker users={users} selected={editLeaderIds} onChange={setEditLeaderIds} />
-          </Field>
+          {isAdmin ? (
+            <Field label="Líderes (marque um ou mais)">
+              <LeaderPicker users={users} selected={editLeaderIds} onChange={setEditLeaderIds} />
+            </Field>
+          ) : (
+            <p className="text-xs text-muted-foreground">A definição de líderes é exclusiva do ADMIN.</p>
+          )}
           <Button className="w-full" onClick={saveEdit}>
             Salvar
           </Button>
