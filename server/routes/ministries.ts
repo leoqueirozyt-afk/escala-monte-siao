@@ -151,6 +151,21 @@ ministryRoutes.delete("/roles/:roleId", async (c) => {
   return c.json({ ok: true });
 });
 
+ministryRoutes.get("/roles/:roleId/impact", async (c) => {
+  const roleId = Number(c.req.param("roleId"));
+  const role = await c.env.DB.prepare("SELECT ministry_id FROM roles WHERE id = ?").bind(roleId).first<any>();
+  if (!role) return c.json({ error: "Função não encontrada" }, 404);
+  if (!(await canManage(c, role.ministry_id))) return c.json({ error: "Sem permissão para este ministério" }, 403);
+  const counts = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT COUNT(*) AS n FROM schedules WHERE role_id = ?").bind(roleId),
+    c.env.DB.prepare("SELECT COUNT(DISTINCT user_id) AS n FROM user_roles WHERE role_id = ?").bind(roleId),
+  ]);
+  return c.json({
+    escalas: Number((counts[0].results as any[])[0]?.n ?? 0),
+    membros: Number((counts[1].results as any[])[0]?.n ?? 0),
+  });
+});
+
 ministryRoutes.post("/:id/members", async (c) => {
   const ministryId = Number(c.req.param("id"));
   if (!(await canManage(c, ministryId))) return c.json({ error: "Sem permissão para este ministério" }, 403);
