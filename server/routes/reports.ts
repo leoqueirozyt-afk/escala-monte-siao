@@ -19,7 +19,7 @@ reportRoutes.get("/participation", async (c) => {
     }
   }
   const rows = await c.env.DB.prepare(
-    `SELECT u.id AS user_id, u.name,
+    `SELECT u.id AS user_id, u.name, u.avatar_url,
        SUM(CASE WHEN s.status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed,
        SUM(CASE WHEN s.status = 'PENDING' THEN 1 ELSE 0 END) AS pending,
        SUM(CASE WHEN s.status = 'DECLINED' THEN 1 ELSE 0 END) AS declined,

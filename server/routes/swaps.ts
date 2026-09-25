@@ -6,7 +6,7 @@ export const swapRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
 
 const SELECT_SWAP = `
   SELECT sw.id, sw.schedule_id, sw.requester_id, sw.target_user_id, sw.status, sw.created_at,
-    req.name AS requester_name, tgt.name AS target_user_name,
+    req.name AS requester_name, req.avatar_url AS requester_avatar, tgt.name AS target_user_name, tgt.avatar_url AS target_user_avatar,
     e.title AS event_title, e.event_date, r.name AS role_name, cur.name AS current_user_name
   FROM swap_requests sw
   JOIN schedules s ON s.id = sw.schedule_id

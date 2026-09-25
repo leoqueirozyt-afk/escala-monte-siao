@@ -7,7 +7,7 @@ export const scheduleRoutes = new Hono<{ Bindings: Env; Variables: AppVariables 
 const SELECT_JOIN = `
   SELECT s.id, s.event_id, s.role_id, s.user_id, s.status, s.notes,
     e.title AS event_title, e.event_date, e.location,
-    r.name AS role_name, m.name AS ministry_name, m.id AS ministry_id, u.name AS user_name
+    r.name AS role_name, m.name AS ministry_name, m.id AS ministry_id, u.name AS user_name, u.avatar_url AS user_avatar
   FROM schedules s
   JOIN events e ON e.id = s.event_id
   JOIN roles r ON r.id = s.role_id
@@ -72,7 +72,7 @@ scheduleRoutes.get("/candidates/:scheduleId", requireRole("ADMIN", "LEADER"), as
   const date = String(schedule.event_date).slice(0, 10);
   const month = String(schedule.event_date).slice(0, 7);
   const rows = await c.env.DB.prepare(
-    `SELECT u.id AS user_id, u.name, u.email, u.max_services_per_month,
+    `SELECT u.id AS user_id, u.name, u.email, u.avatar_url, u.max_services_per_month,
        (SELECT COUNT(*) FROM schedules s2 JOIN events e2 ON e2.id = s2.event_id
         WHERE s2.user_id = u.id AND substr(e2.event_date, 1, 7) = ? AND s2.status != 'DECLINED') AS services_this_month
      FROM users u
