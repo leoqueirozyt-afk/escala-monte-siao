@@ -30,9 +30,8 @@ const leaderNav = [
   { to: "/escala", label: "Escala", icon: CalendarDays },
   { to: "/trocas", label: "Trocas", icon: Handshake },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/ministerios", label: "Ministérios", icon: Users },
 ];
-
-const adminNav = [{ to: "/ministerios", label: "Ministérios", icon: Users }];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user, logout, ministries } = useAuth();
@@ -48,7 +47,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         { to: "/agenda", label: "Minha Agenda", icon: ClipboardList },
         { to: "/calendario", label: "Indisponibilidade", icon: CalendarOff },
         ...leaderNav,
-        ...(admin ? adminNav : []),
         ...playlistNav,
         { to: "/perfil", label: "Perfil", icon: UserIcon },
       ]

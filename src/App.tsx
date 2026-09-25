@@ -27,14 +27,6 @@ function LeaderOnly({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function AdminOnly({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  if (loading) return <Loading />;
-  if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "ADMIN") return <Navigate to="/" replace />;
-  return <>{children}</>;
-}
-
 function LouvorOnly({ children }: { children: React.ReactNode }) {
   const { user, loading, ministries } = useAuth();
   if (loading) return <Loading />;
@@ -73,9 +65,9 @@ export default function App() {
                 <Route
                   path="/ministerios"
                   element={
-                    <AdminOnly>
+                    <LeaderOnly>
                       <MinistriesPage />
-                    </AdminOnly>
+                    </LeaderOnly>
                   }
                 />
                 <Route
