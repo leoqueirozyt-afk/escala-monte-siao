@@ -168,6 +168,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-20 md:pb-0">
+        <div className="sticky top-0 z-40">
         <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-card/90 px-4 py-3 backdrop-blur md:px-6">
           <div className="flex items-center gap-2 md:hidden">
             <button
@@ -241,6 +242,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <LogOut size={16} /> Sair
             </button>
           </nav>
+        </div>
         </div>
 
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-5 md:px-6">{children}</main>
