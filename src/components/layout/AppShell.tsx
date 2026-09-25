@@ -20,6 +20,7 @@ import { useAuth, isLeaderRole } from "../../lib/auth";
 import { cn, monthKey, roleLabel } from "../../lib/utils";
 import { api } from "../../lib/api";
 import { NOTICES_EVENT } from "../../lib/notices";
+import { serializeSubscription } from "@mmmike/web-push/client";
 import { ThemeToggle } from "../ThemeToggle";
 import { ChurchMark } from "../ChurchMark";
 
@@ -61,6 +62,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       window.removeEventListener(NOTICES_EVENT, load);
     };
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+    let alive = true;
+    navigator.serviceWorker
+      .getRegistration()
+      .then(async (reg) => {
+        const sub = reg ? await reg.pushManager.getSubscription() : null;
+        if (alive && sub) await api.post("/push/subscribe", serializeSubscription(sub));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const leader = user ? isLeaderRole(user.role) : false;
   const admin = user?.role === "ADMIN";

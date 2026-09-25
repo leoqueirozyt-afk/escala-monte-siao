@@ -10,6 +10,7 @@ import { Input, Field, Select } from "../components/ui/input";
 import { toast } from "../components/ui/toast";
 import { useAsyncData } from "../lib/use-async-data";
 import { VoiceBadge } from "../components/VoiceBadge";
+import { NotificationsCard } from "../components/NotificationsCard";
 import type { VoiceClassification } from "../../shared/types";
 
 function fileToAvatar(file: File): Promise<string> {
@@ -227,6 +228,8 @@ export function ProfilePage() {
           </form>
         </CardContent>
       </Card>
+
+      <NotificationsCard />
 
       <Button
         variant="outline"
