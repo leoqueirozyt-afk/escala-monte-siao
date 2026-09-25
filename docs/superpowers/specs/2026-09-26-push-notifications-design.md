@@ -16,8 +16,8 @@
 
 ### Chaves VAPID
 - Geradas **uma única vez** (one-liner com `generateVapidKeys()` da lib).
-- Privada: secret do Worker `VAPID_PRIVATE_KEY` (produção: `npx wrangler secret put VAPID_PRIVATE_KEY` uma vez; local: `.dev.vars`; mesma mecânica do `JWT_SECRET`).
-- Pública: **derivada da privada em runtime** (import PKCS8 → JWK → ponto não-comprimido `04||x||y` em base64url) — fonte única de verdade, sem risco de dessincronia; servida por `GET /api/push/public-key`.
+- **Um único secret JSON** `VAPID_KEYS` = `{"publicKey": "...", "privateKey": "..."}` — fonte única de verdade, valores exatamente como gerados (sem conversão/derivação, sem risco de dessincronia): produção: `npx wrangler secret put VAPID_KEYS` uma vez (stdin via pipe); local: `.dev.vars`; mesma mecânica do `JWT_SECRET`.
+- A API serve o campo `publicKey` desse secret por `GET /api/push/public-key`. Se o secret não existir, a rota retorna 500 "Push não configurado" (feature simplesmente desativada).
 
 ### Ciclo de vida da inscrição
 1. Usuário toca "Ativar notificações" no Perfil → `Notification.requestPermission()` → `pushManager.subscribe({userVisibleOnly: true, applicationServerKey})` → `POST /api/push/subscribe`.
@@ -76,12 +76,12 @@ Aplicar local (`npm run db:apply`) e remota (`npm run db:apply:remote`).
 1. **`server/routes/notices.ts` `POST /`** → após INSERT, `notifyVisibleSubscribers`.
 2. **Rotas de escala que atribuem `user_id`** (matrix/agenda — localizar no plano) → `notifyUser(escalado)` **somente quando `user_id` passa de nulo/vazio para um usuário diferente do anterior**. Regra anti-duplicidade: mudanças causadas por **aprovação de troca não disparam** "Você foi escalado" (o evento "Troca aprovada" já informa as duas partes).
 3. **`server/routes/swaps.ts` `POST /`** → `notifyUser(target_user_id)` **apenas se `target_user_id` não for nulo**.
-4. **`server/routes/swaps.ts` `PUT /:id`** com transição real para `APPROVED`/`REJECTED` (status **mudou**; reenvio do mesmo status não notifica) → `notifyUser(requester_id)`.
+4. **`server/routes/swaps.ts` `POST /:id/decision`** (rota real — decide PENDING→APPROVED/REJECTED; o filtro `status = 'PENDING'` garante transição real, reenvio do mesmo status não notifica) → `notifyUser(requester_id)`.
 
 ### Segredos/ambiente
-- Produção: `npx wrangler secret put VAPID_PRIVATE_KEY` (1×; deploys do GH Actions não sobrescrevem secrets).
-- Local: `.dev.vars` com a mesma chave (confirmar `.gitignore`).
-- Chaves: gerar 1× e guardar (privada fora do repositório).
+- Produção: `npx wrangler secret put VAPID_KEYS` (1× via stdin; deploys do GH Actions não sobrescrevem secrets).
+- Local: `.dev.vars` com o mesmo JSON `VAPID_KEYS` (`.dev.vars` já está no `.gitignore`).
+- Chaves: gerar 1× e guardar (par inteiro fora do repositório).
 
 ## Frontend
 
