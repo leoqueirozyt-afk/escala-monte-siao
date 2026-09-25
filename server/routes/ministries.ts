@@ -16,11 +16,30 @@ async function canManage(c: any, ministryId: number): Promise<boolean> {
   return !!owned;
 }
 
+async function rebaixarSeOrfao(c: any, ministryId: number, userIds: number[]): Promise<void> {
+  for (const uid of userIds) {
+    const u = await c.env.DB.prepare("SELECT role FROM users WHERE id = ?").bind(uid).first();
+    if (!u || u.role !== "LEADER") continue;
+    const cnt = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM ministry_leaders WHERE user_id = ?").bind(uid).first();
+    if (Number(cnt?.n ?? 0) > 0) continue;
+    await c.env.DB.batch([
+      c.env.DB.prepare(
+        "UPDATE users SET role = 'VOLUNTEER', account_status = CASE WHEN account_status = 'PENDING_LEADER' THEN 'ACTIVE' ELSE account_status END WHERE id = ? AND role = 'LEADER'",
+      ).bind(uid),
+      c.env.DB.prepare(
+        "DELETE FROM user_roles WHERE user_id = ? AND role_id IN (SELECT id FROM roles WHERE ministry_id = ? AND name = 'Líder')",
+      ).bind(uid, ministryId),
+    ]);
+  }
+}
+
 async function applyLeaders(c: any, ministryId: number, leaderIds: number[]): Promise<string | null> {
   for (const uid of leaderIds) {
     const u = await c.env.DB.prepare("SELECT id, role, account_status FROM users WHERE id = ?").bind(uid).first();
     if (!u || u.account_status === "REJECTED") return "Usuário inválido";
   }
+  const antes = await c.env.DB.prepare("SELECT user_id FROM ministry_leaders WHERE ministry_id = ?").bind(ministryId).all();
+  const antesIds = (antes.results as any[]).map((r: any) => Number(r.user_id));
   await c.env.DB.prepare("DELETE FROM ministry_leaders WHERE ministry_id = ?").bind(ministryId).run();
   if (leaderIds.length > 0) {
     const ins = leaderIds.map((uid) =>
@@ -49,6 +68,10 @@ async function applyLeaders(c: any, ministryId: number, leaderIds: number[]): Pr
   await c.env.DB.prepare("UPDATE ministries SET leader_id = ? WHERE id = ?")
     .bind(leaderIds[0] ?? null, ministryId)
     .run();
+  const depois = await c.env.DB.prepare("SELECT user_id FROM ministry_leaders WHERE ministry_id = ?").bind(ministryId).all();
+  const depoisIds = new Set((depois.results as any[]).map((r: any) => Number(r.user_id)));
+  const removidos = antesIds.filter((id) => !depoisIds.has(id));
+  if (removidos.length > 0) await rebaixarSeOrfao(c, ministryId, removidos);
   return null;
 }
 
@@ -127,8 +150,12 @@ ministryRoutes.put("/:id", async (c) => {
 });
 
 ministryRoutes.delete("/:id", requireRole("ADMIN"), async (c) => {
-  const r = await c.env.DB.prepare("DELETE FROM ministries WHERE id = ?").bind(Number(c.req.param("id"))).run();
+  const id = Number(c.req.param("id"));
+  const antes = await c.env.DB.prepare("SELECT user_id FROM ministry_leaders WHERE ministry_id = ?").bind(id).all();
+  const r = await c.env.DB.prepare("DELETE FROM ministries WHERE id = ?").bind(id).run();
   if ((r.meta.changes ?? 0) === 0) return c.json({ error: "Ministério não encontrado" }, 404);
+  const lideres = (antes.results as any[]).map((r: any) => Number(r.user_id));
+  if (lideres.length > 0) await rebaixarSeOrfao(c, id, lideres);
   return c.json({ ok: true });
 });
 

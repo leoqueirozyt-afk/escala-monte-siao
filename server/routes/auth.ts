@@ -114,10 +114,14 @@ authRoutes.get("/me", requireAuth, async (c) => {
     "SELECT id, name, email, phone, role, max_services_per_month, avatar_url, created_at FROM users WHERE id = ?",
   )
     .bind(payload.sub)
-    .first();
+    .first<any>();
   if (!user) return c.json({ error: "Usuário não encontrado" }, 404);
+  if (user.role !== payload.role) {
+    const token = await signJwt({ sub: user.id, role: user.role, name: user.name }, c.env.JWT_SECRET);
+    setToken(c, token);
+  }
   const ministries =
-    payload.role === "ADMIN"
+    user.role === "ADMIN"
       ? (await c.env.DB.prepare("SELECT id, name, description FROM ministries ORDER BY name").all())
       : await c.env.DB.prepare(
           `SELECT m.id, m.name, m.description FROM ministries m
@@ -133,9 +137,9 @@ authRoutes.get("/me", requireAuth, async (c) => {
             .bind(payload.sub, payload.sub)
             .all();
   const leaderMinistryIdsList =
-    payload.role === "ADMIN"
+    user.role === "ADMIN"
       ? (await c.env.DB.prepare("SELECT id FROM ministries ORDER BY id").all()).results.map((r: any) => Number(r.id))
-      : payload.role === "LEADER"
+      : user.role === "LEADER"
         ? (
             await c.env.DB.prepare("SELECT ministry_id FROM ministry_leaders WHERE user_id = ?")
               .bind(payload.sub)
