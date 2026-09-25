@@ -39,6 +39,11 @@ export function MinistriesPage() {
     role: MinistryRole;
     impact: { escalas: number; membros: number };
   } | null>(null);
+  const [memberRoleTarget, setMemberRoleTarget] = useState<{
+    ministry: Ministry;
+    member: MinistryMember;
+    role: { id: number; name: string };
+  } | null>(null);
   const [membersTick, setMembersTick] = useState(0);
 
   const { user } = useAuth();
@@ -112,6 +117,20 @@ export function MinistriesPage() {
       toast(`Conta de ${deleteTarget.member.name} excluída.`);
       setDeleteTarget(null);
       load();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro", "error");
+    }
+  };
+
+  const removeMemberRole = async () => {
+    if (!memberRoleTarget) return;
+    try {
+      await api.delete(
+        `/ministries/${memberRoleTarget.ministry.id}/members/${memberRoleTarget.member.id}/${memberRoleTarget.role.id}`,
+      );
+      toast(`Função "${memberRoleTarget.role.name}" removida de ${memberRoleTarget.member.name}.`);
+      setMemberRoleTarget(null);
+      setMembersTick((t) => t + 1);
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro", "error");
     }
@@ -352,6 +371,7 @@ export function MinistriesPage() {
                   onClassify={(member) => openVoice(member)}
                   onRemove={(member) => setRemoveTarget({ ministry: m, member })}
                   onDeleteAccount={(member) => setDeleteTarget({ ministry: m, member })}
+                  onRemoveRole={(member, role) => setMemberRoleTarget({ ministry: m, member, role })}
                 />
               ) : (
                 <p className="text-xs text-muted-foreground">
@@ -546,6 +566,20 @@ export function MinistriesPage() {
         onConfirm={deleteRole}
         onClose={() => setRoleDeleteTarget(null)}
       />
+
+      <ConfirmDialog
+        open={!!memberRoleTarget}
+        title="Remover função"
+        description={
+          memberRoleTarget
+            ? `Remover a função "${memberRoleTarget.role.name}" de ${memberRoleTarget.member.name}? Se essa for a última função dela, ela deixa de aparecer na lista de membros.`
+            : undefined
+        }
+        confirmLabel="Remover"
+        destructive
+        onConfirm={removeMemberRole}
+        onClose={() => setMemberRoleTarget(null)}
+      />
     </div>
   );
 }
@@ -560,6 +594,7 @@ function MemberList({
   onClassify,
   onRemove,
   onDeleteAccount,
+  onRemoveRole,
 }: {
   ministry: Ministry;
   members?: MinistryMember[];
@@ -570,6 +605,7 @@ function MemberList({
   onClassify: (member: MinistryMember) => void;
   onRemove: (member: MinistryMember) => void;
   onDeleteAccount: (member: MinistryMember) => void;
+  onRemoveRole: (member: MinistryMember, role: { id: number; name: string }) => void;
 }) {
   if (status === "error") {
     return <ErrorState message={error ?? "Erro"} onRetry={onRetry} className="border-destructive/30" />;
@@ -605,9 +641,16 @@ function MemberList({
               {m.roles.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-1">
                   {m.roles.map((r) => (
-                    <Badge key={r.id} variant="secondary" className="text-[10px]">
-                      {r.name}
-                    </Badge>
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => onRemoveRole(m, r)}
+                      aria-label={`Remover função ${r.name} de ${m.name}`}
+                      className="inline-flex h-6 items-center gap-1 rounded-full bg-secondary px-2 text-[10px] font-medium text-secondary-foreground hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span className="truncate">{r.name}</span>
+                      <X size={10} aria-hidden="true" />
+                    </button>
                   ))}
                 </div>
               )}
