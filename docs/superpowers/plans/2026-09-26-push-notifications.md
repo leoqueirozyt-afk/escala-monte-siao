@@ -1,6 +1,6 @@
 # Notificações Push (Parte 2 de 2) — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Web Push (PWA) para 4 eventos — aviso novo, escalado em vaga, pedido de troca recebido, resultado de troca — com ativação no Perfil e deep link ao clicar.
 
@@ -23,14 +23,14 @@
 - Modify: `server/index.ts`
 - Create: `C:\Users\Raptor\AppData\Local\Temp\opencode\smoke-push.mjs`
 
-- [ ] **Step 1: Instalar dependência**
+- [x] **Step 1: Instalar dependência**
 
 ```
 npm install @mmmike/web-push
 ```
 Expected: instalada (zero dependências transitivas).
 
-- [ ] **Step 2: Gerar chaves VAPID e salvar no `.dev.vars` local**
+- [x] **Step 2: Gerar chaves VAPID e salvar no `.dev.vars` local**
 
 ```powershell
 node --input-type=module -e "import { generateVapidKeys } from '@mmmike/web-push/vapid'; import { writeFileSync } from 'node:fs'; const k = await generateVapidKeys(); writeFileSync(process.env.TEMP + '/opencode/vapid.json', JSON.stringify({ publicKey: k.publicKey, privateKey: k.privateKey }));"
@@ -39,7 +39,7 @@ Get-Content .dev.vars | ForEach-Object { $_ -replace '=.*', '=***' }
 ```
 Expected: lista mostra `JWT_SECRET=***` e `VAPID_KEYS=***`. **`writeFileSync` de propósito: o redirecionador `>` do PowerShell 5.1 grava UTF-16 e quebraria `wrangler secret put VAPID_KEYS < vapid.json` no Task 5.** (Guardar `vapid.json` — a MESMA chave vai para produção.)
 
-- [ ] **Step 3: Migration `0008_push_subscriptions.sql`**
+- [x] **Step 3: Migration `0008_push_subscriptions.sql`**
 
 ```sql
 CREATE TABLE push_subscriptions (
@@ -54,7 +54,7 @@ CREATE TABLE push_subscriptions (
 CREATE INDEX idx_push_subscriptions_user ON push_subscriptions(user_id);
 ```
 
-- [ ] **Step 4: Aplicar migration local e remota**
+- [x] **Step 4: Aplicar migration local e remota**
 
 ```
 npm run db:apply
@@ -62,7 +62,7 @@ npm run db:apply:remote
 ```
 Expected: ambas aplicam 0008 (retry em erro transitório 7403).
 
-- [ ] **Step 5: `VAPID_KEYS` no `Env`** — em `server/lib/env.ts`:
+- [x] **Step 5: `VAPID_KEYS` no `Env`** — em `server/lib/env.ts`:
 
 ```ts
 export interface Env {
@@ -73,7 +73,7 @@ export interface Env {
 }
 ```
 
-- [ ] **Step 6: Smoke TDD — criar `smoke-push.mjs` falhando (rota 404)**
+- [x] **Step 6: Smoke TDD — criar `smoke-push.mjs` falhando (rota 404)**
 
 ```js
 const base = process.env.SMOKE_BASE || "http://localhost:5173/api";
@@ -198,14 +198,14 @@ console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);
 ```
 
-- [ ] **Step 7: Rodar e ver falhar**
+- [x] **Step 7: Rodar e ver falhar**
 
 ```
 node "$env:TEMP\opencode\smoke-push.mjs"
 ```
 Expected: falhas nos checks de rota (404). Se dev server cair: reiniciar (ver Contexto).
 
-- [ ] **Step 8: Criar `server/routes/push.ts`**
+- [x] **Step 8: Criar `server/routes/push.ts`**
 
 ```ts
 import { Hono } from "hono";
@@ -271,7 +271,7 @@ pushRoutes.delete("/subscribe", async (c) => {
 });
 ```
 
-- [ ] **Step 9: Registrar rota em `server/index.ts`** — import após `noticeRoutes` + rota após a de notices:
+- [x] **Step 9: Registrar rota em `server/index.ts`** — import após `noticeRoutes` + rota após a de notices:
 
 ```ts
 import { pushRoutes } from "./routes/push.js";
@@ -280,7 +280,7 @@ import { pushRoutes } from "./routes/push.js";
 app.route("/api/push", pushRoutes);
 ```
 
-- [ ] **Step 10: Typecheck + restart do dev server + smoke verde**
+- [x] **Step 10: Typecheck + restart do dev server + smoke verde**
 
 ```
 npm run typecheck
@@ -298,7 +298,7 @@ node "$env:TEMP\opencode\smoke-push.mjs"
 ```
 Expected: typecheck limpo; smoke `0 failed` (~17 checks).
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add package.json package-lock.json migrations/0008_push_subscriptions.sql server/lib/env.ts server/routes/push.ts server/index.ts
@@ -316,7 +316,7 @@ git commit -m "feat: backend de push (tabela, rotas de inscricao e public-key)"
 - Modify: `server/routes/swaps.ts` (2 gatilhos)
 - Modify: `C:\Users\Raptor\AppData\Local\Temp\opencode\smoke-push.mjs` (checks de resiliência)
 
-- [ ] **Step 1: Criar `server/lib/push.ts`**
+- [x] **Step 1: Criar `server/lib/push.ts`**
 
 ```ts
 import { sendPushBatch } from "@mmmike/web-push/send";
@@ -391,7 +391,7 @@ export async function notifyVisibleSubscribers(
 }
 ```
 
-- [ ] **Step 2: Gatilho em `server/routes/notices.ts`** — import + chamada logo após o INSERT do `POST /` (antes do `return c.json({ id: ... }, 201)`):
+- [x] **Step 2: Gatilho em `server/routes/notices.ts`** — import + chamada logo após o INSERT do `POST /` (antes do `return c.json({ id: ... }, 201)`):
 
 ```ts
 import { notifyVisibleSubscribers, schedulePush } from "../lib/push.js";
@@ -408,7 +408,7 @@ import { notifyVisibleSubscribers, schedulePush } from "../lib/push.js";
   );
 ```
 
-- [ ] **Step 3: Gatilhos em `server/routes/schedules.ts`** — import no topo:
+- [x] **Step 3: Gatilhos em `server/routes/schedules.ts`** — import no topo:
 
 ```ts
 import { notifyUser, schedulePush } from "../lib/push.js";
@@ -450,7 +450,7 @@ import { notifyUser, schedulePush } from "../lib/push.js";
 
 (Não mexer nos branches de grupo nem de remoção — regra anti-duplicidade do spec.)
 
-- [ ] **Step 4: Gatilhos em `server/routes/swaps.ts`** — import no topo:
+- [x] **Step 4: Gatilhos em `server/routes/swaps.ts`** — import no topo:
 
 ```ts
 import { notifyUser, schedulePush } from "../lib/push.js";
@@ -499,7 +499,7 @@ e logo após o `INSERT INTO swap_requests ... .run();` antes do return:
 
 (O filtro `status = 'PENDING'` da query já garante que só transições reais chegam aqui.)
 
-- [ ] **Step 5: Estender o smoke com checks de resiliência** — adicionar em `smoke-push.mjs` ANTES do bloco `// limpeza`:
+- [x] **Step 5: Estender o smoke com checks de resiliência** — adicionar em `smoke-push.mjs` ANTES do bloco `// limpeza`:
 
 ```js
 // resiliência: push com endpoint DNS-morto não derruba as operações
@@ -579,7 +579,7 @@ await req(`/events/${evPush2.id}`, admin, { method: "DELETE" });
 await req(`/ministries/${mPush.id}`, admin, { method: "DELETE" });
 ```
 
-- [ ] **Step 6: Typecheck + restart do dev server + smoke verde**
+- [x] **Step 6: Typecheck + restart do dev server + smoke verde**
 
 ```
 npm run typecheck
@@ -590,7 +590,7 @@ node "$env:TEMP\opencode\smoke-push.mjs"
 ```
 Expected: typecheck limpo; smoke `0 failed` (~27 checks). Se travar: os `timeoutMs: 10000` limitam o envio; resposta HTTP não espera o push.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add server/lib/push.ts server/routes/notices.ts server/routes/schedules.ts server/routes/swaps.ts
@@ -607,14 +607,14 @@ git commit -m "feat: envio de push nos gatilhos de aviso, escala e troca"
 - Modify: `src/pages/ProfilePage.tsx`
 - Modify: `src/components/layout/AppShell.tsx`
 
-- [ ] **Step 1: `api.delete` aceita corpo** — em `src/lib/api.ts` trocar a linha do `delete`:
+- [x] **Step 1: `api.delete` aceita corpo** — em `src/lib/api.ts` trocar a linha do `delete`:
 
 ```ts
   delete: <T>(path: string, body?: unknown) =>
     request<T>(path, { method: "DELETE", body: body ? JSON.stringify(body) : undefined }),
 ```
 
-- [ ] **Step 2: Criar `src/components/NotificationsCard.tsx`**
+- [x] **Step 2: Criar `src/components/NotificationsCard.tsx`**
 
 ```tsx
 import { useEffect, useState } from "react";
@@ -758,7 +758,7 @@ export function NotificationsCard() {
 }
 ```
 
-- [ ] **Step 3: Renderizar no Perfil** — em `src/pages/ProfilePage.tsx`:
+- [x] **Step 3: Renderizar no Perfil** — em `src/pages/ProfilePage.tsx`:
 
 import:
 ```tsx
@@ -775,7 +775,7 @@ JSX — inserir `<NotificationsCard />` entre o `</Card>` final do "Dados da con
         className="w-full text-destructive"
 ```
 
-- [ ] **Step 4: Auto-sync no `AppShell`** — import:
+- [x] **Step 4: Auto-sync no `AppShell`** — import:
 ```tsx
 import { serializeSubscription } from "@mmmike/web-push/client";
 ```
@@ -797,7 +797,7 @@ Effect logo após o effect do badge de avisos (mesmo componente):
   }, []);
 ```
 
-- [ ] **Step 5: Verificar + commit**
+- [x] **Step 5: Verificar + commit**
 
 ```
 npm run typecheck; npm run build; node "C:\Users\Raptor\.opencode\skills\impeccable\scripts\detector\cli\main.mjs" --json src public
@@ -816,7 +816,7 @@ git commit -m "feat: card de notificacoes no perfil com ativacao e auto-sync"
 **Files:**
 - Modify: `public/sw.js`
 
-- [ ] **Step 1: Acrescentar ao final de `public/sw.js`** (após o handler de `fetch`):
+- [x] **Step 1: Acrescentar ao final de `public/sw.js`** (após o handler de `fetch`):
 
 ```js
 self.addEventListener("push", (event) => {
@@ -850,7 +850,7 @@ self.addEventListener("notificationclick", (event) => {
 });
 ```
 
-- [ ] **Step 2: Verificar + commit**
+- [x] **Step 2: Verificar + commit**
 
 ```
 npm run build; node "C:\Users\Raptor\.opencode\skills\impeccable\scripts\detector\cli\main.mjs" --json src public
@@ -866,7 +866,7 @@ git commit -m "feat: handlers de push e clique de notificacao no service worker"
 
 ### Task 5: Verificação final + secret de produção + deploy
 
-- [ ] **Step 1: Suíte local (8 smokes)**
+- [x] **Step 1: Suíte local (8 smokes)**
 
 ```powershell
 $env:SMOKE_BASE = "http://localhost:5173/api"
@@ -875,21 +875,21 @@ $env:SMOKE_BASE = "http://localhost:5173/api"
 ```
 Expected: todos `0 failed`.
 
-- [ ] **Step 2: Secret de produção**
+- [x] **Step 2: Secret de produção**
 
 ```powershell
 cmd /c "npx wrangler secret put VAPID_KEYS < %TEMP%\opencode\vapid.json"
 ```
 Expected: `✨ Success! Secret added`. (Mesma chave do `.dev.vars`; deploys do GH Actions não sobrescrevem secrets.)
 
-- [ ] **Step 3: Push + deploy**
+- [x] **Step 3: Push + deploy**
 
 ```bash
 git push origin main
 ```
 Watch: `$runId = (gh run list --limit 1 --json databaseId | ConvertFrom-Json)[0].databaseId` — se voltar o run antigo (race), usar `gh run list` e escolher o `in_progress` — `gh run watch <novo> --exit-status`.
 
-- [ ] **Step 4: Suíte de produção**
+- [x] **Step 4: Suíte de produção**
 
 ```powershell
 $env:SMOKE_BASE = "https://escala-monte-siao.leoqueirozyt.workers.dev/api"
@@ -897,7 +897,7 @@ $env:SMOKE_BASE = "https://escala-monte-siao.leoqueirozyt.workers.dev/api"
 ```
 Expected: todos `0 failed` (o smoke `min-leaders` é sensível a dados reais — em caso de falha isolada, repetir a suíte para confirmar transitória).
 
-- [ ] **Step 5: Resumo final** — finishing-a-development-branch (tudo na main, já em produção → resumo em português + checklist de teste manual E2E do spec: ativar no Android/desktop, aviso → notificação → clique abre `/avisos`, escalado → `/agenda`, troca → `/trocas`, desativar, iPhone → "indisponível").
+- [x] **Step 5: Resumo final** — finishing-a-development-branch (tudo na main, já em produção → resumo em português + checklist de teste manual E2E do spec: ativar no Android/desktop, aviso → notificação → clique abre `/avisos`, escalado → `/agenda`, troca → `/trocas`, desativar, iPhone → "indisponível").
 
 ## Self-review (realizado na escrita)
 - **Spec coverage:** 4 eventos ✅ (Task 2), ativação Perfil/iPhone/bloqueado ✅ (Task 3), SW deep link ✅ (Task 4), auto-sync ✅ (Task 3), secret único ✅ (Task 1/5), prune 404/410 ✅ (Task 2 `gone`), best-effort ✅ (`schedulePush` + try/catch), anti-duplicidade troca/escala ✅ (sem gatilho em `decision`→assign), smoke ✅ (Tasks 1–2).
