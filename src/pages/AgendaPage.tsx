@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Handshake, MapPin, UserSearch, Users } from "lucide-react";
+import { ChevronDown, Handshake, MapPin, UserSearch, Users } from "lucide-react";
 import { api, ApiError } from "../lib/api";
 import { formatDateTime } from "../lib/utils";
 import { useAsyncData } from "../lib/use-async-data";
@@ -12,7 +12,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { PersonAvatar } from "../components/ui/person-avatar";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { Candidate, Schedule } from "../../shared/types";
+import type { Candidate, Schedule, TeamMember } from "../../shared/types";
 
 export function AgendaPage() {
   const [swapTarget, setSwapTarget] = useState<Schedule | null>(null);
@@ -20,10 +20,18 @@ export function AgendaPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<string>("");
   const [respondingId, setRespondingId] = useState<number | null>(null);
   const [swapBusy, setSwapBusy] = useState(false);
+  const [openTeam, setOpenTeam] = useState<Record<number, boolean>>({});
 
   const { data: schedules = [], status, error, reload } = useAsyncData<Schedule[]>(
     () => api.get<Schedule[]>("/schedules/my"),
     [],
+  );
+
+  const eventIdsKey = [...new Set(schedules.map((s) => s.event_id))].sort((a, b) => a - b).join(",");
+  const teamsVersion = schedules.map((s) => `${s.event_id}:${s.status}`).join(",");
+  const { data: teams = {} } = useAsyncData<Record<string, TeamMember[]>>(
+    () => (eventIdsKey ? api.get<Record<string, TeamMember[]>>(`/events/teams?ids=${eventIdsKey}`) : Promise.resolve({})),
+    [teamsVersion],
   );
 
   const respond = async (id: number, status: "CONFIRMED" | "DECLINED") => {
@@ -76,62 +84,103 @@ export function AgendaPage() {
   const upcoming = schedules.filter((s) => new Date(s.event_date!).getTime() > Date.now());
   const past = schedules.filter((s) => new Date(s.event_date!).getTime() <= Date.now());
 
-  const renderCard = (s: Schedule) => (
-    <Card key={s.id}>
-      <CardContent className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-semibold">{s.event_title}</h3>
-              <StatusBadge schedule={s} />
+  const renderCard = (s: Schedule) => {
+    const team = teams[String(s.event_id)] ?? [];
+    const open = !!openTeam[s.id];
+    return (
+      <Card key={s.id}>
+        <CardContent className="p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-semibold">{s.event_title}</h3>
+                <StatusBadge schedule={s} />
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(s.event_date!)}</p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <Badge variant="outline">{s.ministry_name} · {s.role_name}</Badge>
+                {s.group && (
+                  <Badge variant="secondary" className="gap-1">
+                    <Users size={10} /> Grupo {s.group.name}
+                  </Badge>
+                )}
+                {s.location && (
+                  <span className="flex items-center gap-1">
+                    <MapPin size={12} /> {s.location}
+                  </span>
+                )}
+              </div>
+              {s.notes && <p className="mt-2 text-xs text-muted-foreground">{s.notes}</p>}
             </div>
-            <p className="mt-1 text-sm text-muted-foreground">{formatDateTime(s.event_date!)}</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">{s.ministry_name} · {s.role_name}</Badge>
-              {s.group && (
-                <Badge variant="secondary" className="gap-1">
-                  <Users size={10} /> Grupo {s.group.name}
-                </Badge>
-              )}
-              {s.location && (
-                <span className="flex items-center gap-1">
-                  <MapPin size={12} /> {s.location}
+          </div>
+          {new Date(s.event_date!).getTime() > Date.now() && s.status === "PENDING" && (
+            <div className="mt-3 flex gap-2">
+              <Button
+                size="sm"
+                variant="success"
+                className="flex-1"
+                disabled={respondingId === s.id}
+                onClick={() => respond(s.id, "CONFIRMED")}
+              >
+                Confirmar
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                className="flex-1"
+                disabled={respondingId === s.id}
+                onClick={() => respond(s.id, "DECLINED")}
+              >
+                Recusar
+              </Button>
+            </div>
+          )}
+          {new Date(s.event_date!).getTime() > Date.now() && !s.group && (
+            <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => openSwap(s)}>
+              <Handshake size={14} /> Solicitar troca
+            </Button>
+          )}
+          {team.length > 0 && (
+            <div className="mt-3 border-t pt-2">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-sm font-medium"
+                aria-expanded={open}
+                onClick={() => setOpenTeam((o) => ({ ...o, [s.id]: !o[s.id] }))}
+              >
+                <span className="flex items-center gap-2">
+                  <Users size={14} aria-hidden="true" /> Time do culto
+                  <Badge variant="outline">
+                    {team.length} {team.length === 1 ? "pessoa" : "pessoas"}
+                  </Badge>
                 </span>
+                <ChevronDown size={16} aria-hidden="true" className={`transition-transform ${open ? "rotate-180" : ""}`} />
+              </button>
+              {open && (
+                <ul className="mt-2 space-y-1.5">
+                  {team.map((m) => (
+                    <li key={`${m.is_group ? "g" : "i"}-${m.user_id}`} className="flex items-center gap-2">
+                      <PersonAvatar name={m.name} avatarUrl={m.avatar_url} className="h-7 w-7 text-xs" />
+                      <span className="min-w-0 flex-1 truncate text-sm">
+                        {m.name}
+                        {m.is_me && <span className="font-semibold text-primary"> · você</span>}
+                        <span className="text-xs text-muted-foreground">
+                          {" "}
+                          · {m.role_name}
+                          {m.is_group ? " · grupo" : ""}
+                        </span>
+                      </span>
+                      <StatusBadge schedule={{ status: m.status, user_id: m.user_id, group: null }} />
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-            {s.notes && <p className="mt-2 text-xs text-muted-foreground">{s.notes}</p>}
-          </div>
-        </div>
-        {new Date(s.event_date!).getTime() > Date.now() && s.status === "PENDING" && (
-          <div className="mt-3 flex gap-2">
-            <Button
-              size="sm"
-              variant="success"
-              className="flex-1"
-              disabled={respondingId === s.id}
-              onClick={() => respond(s.id, "CONFIRMED")}
-            >
-              Confirmar
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              className="flex-1"
-              disabled={respondingId === s.id}
-              onClick={() => respond(s.id, "DECLINED")}
-            >
-              Recusar
-            </Button>
-          </div>
-        )}
-        {new Date(s.event_date!).getTime() > Date.now() && !s.group && (
-          <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => openSwap(s)}>
-            <Handshake size={14} /> Solicitar troca
-          </Button>
-        )}
-      </CardContent>
-    </Card>
-  );
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-5">

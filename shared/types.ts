@@ -99,6 +99,16 @@ export interface ScheduleGroup {
   members: ScheduleGroupMember[];
 }
 
+export interface TeamMember {
+  user_id: number;
+  name: string;
+  avatar_url: string | null;
+  role_name: string;
+  status: ScheduleStatus;
+  is_group: boolean;
+  is_me: boolean;
+}
+
 export interface EventItem {
   id: number;
   title: string;
