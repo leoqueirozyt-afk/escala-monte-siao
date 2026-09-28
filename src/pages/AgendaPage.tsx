@@ -21,6 +21,7 @@ export function AgendaPage() {
   const [respondingId, setRespondingId] = useState<number | null>(null);
   const [swapBusy, setSwapBusy] = useState(false);
   const [openTeam, setOpenTeam] = useState<Record<number, boolean>>({});
+  const [period, setPeriod] = useState<"month" | "all">("month");
 
   const { data: schedules = [], status, error, reload } = useAsyncData<Schedule[]>(
     () => api.get<Schedule[]>("/schedules/my"),
@@ -81,8 +82,15 @@ export function AgendaPage() {
     }
   };
 
-  const upcoming = schedules.filter((s) => new Date(s.event_date!).getTime() > Date.now());
-  const past = schedules.filter((s) => new Date(s.event_date!).getTime() <= Date.now());
+  const inPeriod = (s: Schedule) => {
+    if (period === "all") return true;
+    const d = new Date(s.event_date!);
+    const now = new Date();
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  };
+  const visible = schedules.filter(inPeriod);
+  const upcoming = visible.filter((s) => new Date(s.event_date!).getTime() > Date.now());
+  const past = visible.filter((s) => new Date(s.event_date!).getTime() <= Date.now());
 
   const renderCard = (s: Schedule) => {
     const team = teams[String(s.event_id)] ?? [];
@@ -184,7 +192,31 @@ export function AgendaPage() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold">Minha Agenda</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-bold">Minha Agenda</h1>
+        <div className="flex rounded-lg border p-0.5" role="group" aria-label="Período">
+          <button
+            type="button"
+            aria-pressed={period === "month"}
+            onClick={() => setPeriod("month")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              period === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            Este mês
+          </button>
+          <button
+            type="button"
+            aria-pressed={period === "all"}
+            onClick={() => setPeriod("all")}
+            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+              period === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            Todas
+          </button>
+        </div>
+      </div>
 
       {status === "error" && error ? (
         <ErrorState message={error} onRetry={reload} />
@@ -194,9 +226,12 @@ export function AgendaPage() {
         <>
           <section className="space-y-3">
             <h2 className="text-sm font-medium text-muted-foreground">Próximas</h2>
-            {upcoming.length === 0 && (
-              <EmptyState title="Nenhuma escala futura" hint="Novas atribuições aparecerão aqui." />
-            )}
+            {upcoming.length === 0 &&
+              (period === "month" ? (
+                <EmptyState title="Nenhuma escala este mês" hint="Use o filtro para ver todas as escalas." />
+              ) : (
+                <EmptyState title="Nenhuma escala futura" hint="Novas atribuições aparecerão aqui." />
+              ))}
             {upcoming.map(renderCard)}
           </section>
 
