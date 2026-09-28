@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from "../lib/env.js";
 import { requireAuth, requireRole, leaderMinistryIds, type AppVariables } from "../lib/auth.js";
 import { attachGroups } from "../lib/voice.js";
+import type { TeamMember } from "../../shared/types.js";
 
 export const eventRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -44,6 +45,61 @@ eventRoutes.get("/", async (c) => {
     slots: slotList.filter((s) => s.event_id === e.id),
   }));
   return c.json(result);
+});
+
+eventRoutes.get("/teams", async (c) => {
+  const ids = [...new Set((c.req.query("ids") ?? "").split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0))];
+  if (ids.length === 0) return c.json({ error: "Informe ids" }, 400);
+  const user = c.get("user");
+  const uid = Number(user.sub);
+  let visible = ids;
+  if (user.role !== "ADMIN" && user.role !== "LEADER") {
+    const ph = ids.map(() => "?").join(",");
+    const mine = await c.env.DB.prepare(
+      `SELECT DISTINCT event_id FROM schedules WHERE event_id IN (${ph}) AND user_id = ?
+       UNION
+       SELECT DISTINCT s.event_id FROM schedule_group_members g JOIN schedules s ON s.id = g.schedule_id
+       WHERE s.event_id IN (${ph}) AND g.user_id = ?`,
+    )
+      .bind(...ids, uid, ...ids, uid)
+      .all();
+    const allowed = new Set((mine.results as any[]).map((r) => Number(r.event_id)));
+    visible = ids.filter((id) => allowed.has(id));
+  }
+  if (visible.length === 0) return c.json({});
+  const vph = visible.map(() => "?").join(",");
+  const rows = await c.env.DB.prepare(
+    `SELECT s.event_id, u.id AS user_id, u.name AS name, u.avatar_url, r.name AS role_name, s.status AS status, 0 AS is_group
+     FROM schedules s
+     JOIN users u ON u.id = s.user_id
+     JOIN roles r ON r.id = s.role_id
+     WHERE s.event_id IN (${vph}) AND s.group_id IS NULL
+     UNION ALL
+     SELECT s.event_id, u.id AS user_id, u.name AS name, u.avatar_url, r.name AS role_name, g.status AS status, 1 AS is_group
+     FROM schedule_group_members g
+     JOIN schedules s ON s.id = g.schedule_id
+     JOIN users u ON u.id = g.user_id
+     JOIN roles r ON r.id = s.role_id
+     WHERE s.event_id IN (${vph})
+     ORDER BY name`,
+  )
+    .bind(...visible, ...visible)
+    .all();
+  const out: Record<string, TeamMember[]> = {};
+  for (const r of rows.results as any[]) {
+    const key = String(r.event_id);
+    if (!out[key]) out[key] = [];
+    out[key].push({
+      user_id: Number(r.user_id),
+      name: String(r.name),
+      avatar_url: r.avatar_url ?? null,
+      role_name: String(r.role_name),
+      status: r.status,
+      is_group: Number(r.is_group) === 1,
+      is_me: Number(r.user_id) === uid,
+    });
+  }
+  return c.json(out);
 });
 
 eventRoutes.post("/", requireRole("ADMIN", "LEADER"), async (c) => {

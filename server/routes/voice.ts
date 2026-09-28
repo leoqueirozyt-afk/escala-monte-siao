@@ -100,6 +100,13 @@ voiceRoutes.post("/groups/:id/members", async (c) => {
   await c.env.DB.prepare("INSERT OR IGNORE INTO voice_group_members (group_id, user_id) VALUES (?, ?)")
     .bind(groupId, user_id)
     .run();
+  await c.env.DB.prepare(
+    `INSERT OR IGNORE INTO schedule_group_members (schedule_id, user_id, status)
+     SELECT s.id, ?, 'PENDING' FROM schedules s JOIN events e ON e.id = s.event_id
+     WHERE s.group_id = ? AND replace(e.event_date, 'T', ' ') >= datetime('now')`,
+  )
+    .bind(user_id, groupId)
+    .run();
   return c.json({ ok: true }, 201);
 });
 

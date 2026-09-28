@@ -20,27 +20,46 @@ reportRoutes.get("/participation", async (c) => {
   }
   const rows = await c.env.DB.prepare(
     `SELECT u.id AS user_id, u.name, u.avatar_url,
-       SUM(CASE WHEN s.status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed,
-       SUM(CASE WHEN s.status = 'PENDING' THEN 1 ELSE 0 END) AS pending,
-       SUM(CASE WHEN s.status = 'DECLINED' THEN 1 ELSE 0 END) AS declined,
-       COUNT(s.id) AS total
-     FROM schedules s
-     JOIN events e ON e.id = s.event_id
-     JOIN roles r ON r.id = s.role_id
-     JOIN ministries m ON m.id = r.ministry_id
-     JOIN users u ON u.id = s.user_id
-     WHERE substr(e.event_date, 1, 7) = ?${ministryWhere}
+       SUM(CASE WHEN t.status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed,
+       SUM(CASE WHEN t.status = 'PENDING' THEN 1 ELSE 0 END) AS pending,
+       SUM(CASE WHEN t.status = 'DECLINED' THEN 1 ELSE 0 END) AS declined,
+       COUNT(*) AS total
+     FROM (
+       SELECT s.user_id AS uid, s.status AS status
+       FROM schedules s
+       JOIN events e ON e.id = s.event_id
+       JOIN roles r ON r.id = s.role_id
+       JOIN ministries m ON m.id = r.ministry_id
+       WHERE substr(e.event_date, 1, 7) = ? AND s.user_id IS NOT NULL${ministryWhere}
+       UNION ALL
+       SELECT g.user_id AS uid, g.status AS status
+       FROM schedule_group_members g
+       JOIN schedules s ON s.id = g.schedule_id
+       JOIN events e ON e.id = s.event_id
+       JOIN roles r ON r.id = s.role_id
+       JOIN ministries m ON m.id = r.ministry_id
+       WHERE substr(e.event_date, 1, 7) = ?${ministryWhere}
+     ) t
+     JOIN users u ON u.id = t.uid
      GROUP BY u.id
      ORDER BY total DESC`,
   )
-    .bind(month, ...extraBinds)
+    .bind(month, ...extraBinds, month, ...extraBinds)
     .all();
   const summary = await c.env.DB.prepare(
     `SELECT
        COUNT(*) AS total_slots,
-       SUM(CASE WHEN s.user_id IS NULL THEN 1 ELSE 0 END) AS vacancies,
-       SUM(CASE WHEN s.status = 'CONFIRMED' THEN 1 ELSE 0 END) AS confirmed,
-       SUM(CASE WHEN s.status = 'DECLINED' THEN 1 ELSE 0 END) AS declined
+       SUM(CASE WHEN s.user_id IS NULL AND s.group_id IS NULL THEN 1 ELSE 0 END) AS vacancies,
+       SUM(CASE WHEN (s.group_id IS NULL AND s.status = 'CONFIRMED')
+             OR (s.group_id IS NOT NULL
+                 AND EXISTS (SELECT 1 FROM schedule_group_members g WHERE g.schedule_id = s.id)
+                 AND NOT EXISTS (SELECT 1 FROM schedule_group_members g WHERE g.schedule_id = s.id AND g.status <> 'CONFIRMED'))
+           THEN 1 ELSE 0 END) AS confirmed,
+       SUM(CASE WHEN (s.group_id IS NULL AND s.status = 'DECLINED')
+             OR (s.group_id IS NOT NULL
+                 AND EXISTS (SELECT 1 FROM schedule_group_members g WHERE g.schedule_id = s.id)
+                 AND NOT EXISTS (SELECT 1 FROM schedule_group_members g WHERE g.schedule_id = s.id AND g.status <> 'DECLINED'))
+           THEN 1 ELSE 0 END) AS declined
      FROM schedules s
      JOIN events e ON e.id = s.event_id
      JOIN roles r ON r.id = s.role_id
