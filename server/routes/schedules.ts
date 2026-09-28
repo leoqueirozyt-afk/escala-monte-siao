@@ -195,6 +195,22 @@ scheduleRoutes.patch("/:id", requireRole("ADMIN", "LEADER"), async (c) => {
       ),
       ...inserts,
     ]);
+    const ev = await c.env.DB.prepare("SELECT title, event_date FROM events WHERE id = ?")
+      .bind(schedule.event_id)
+      .first<any>();
+    const d = String(ev?.event_date ?? "");
+    schedulePush(
+      c,
+      (async () => {
+        for (const m of members.results as any[]) {
+          await notifyUser(c.env, Number(m.user_id), {
+            title: "Você foi escalado",
+            body: `${ev?.title ?? "Escala"} • ${d.slice(8, 10)}/${d.slice(5, 7)}`,
+            url: "/agenda",
+          });
+        }
+      })(),
+    );
     return c.json({ ok: true });
   }
 
