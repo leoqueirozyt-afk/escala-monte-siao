@@ -22,6 +22,7 @@ export function AgendaPage() {
   const [swapBusy, setSwapBusy] = useState(false);
   const [openTeam, setOpenTeam] = useState<Record<number, boolean>>({});
   const [period, setPeriod] = useState<"month" | "all">("month");
+  const [recuse, setRecuse] = useState<{ id: number; step: "confirm" | "notice" } | null>(null);
 
   const { data: schedules = [], status, error, reload } = useAsyncData<Schedule[]>(
     () => api.get<Schedule[]>("/schedules/my"),
@@ -44,6 +45,20 @@ export function AgendaPage() {
       reload();
     } catch (e) {
       toast(e instanceof Error ? e.message : "Erro ao responder", "error");
+    } finally {
+      setRespondingId(null);
+    }
+  };
+
+  const confirmRecuse = async () => {
+    if (!recuse || recuse.step !== "confirm" || respondingId !== null) return;
+    setRespondingId(recuse.id);
+    try {
+      await api.post(`/schedules/${recuse.id}/respond`, { status: "DECLINED" });
+      setRecuse({ id: recuse.id, step: "notice" });
+      reload();
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erro ao recusar", "error");
     } finally {
       setRespondingId(null);
     }
@@ -137,13 +152,31 @@ export function AgendaPage() {
                 variant="destructive"
                 className="flex-1"
                 disabled={respondingId === s.id}
-                onClick={() => respond(s.id, "DECLINED")}
+                onClick={() => setRecuse({ id: s.id, step: "confirm" })}
               >
                 Recusar
               </Button>
             </div>
           )}
-          {new Date(s.event_date!).getTime() > Date.now() && !s.group && (
+          {new Date(s.event_date!).getTime() > Date.now() && s.status === "CONFIRMED" && (
+            <div className="mt-3 flex gap-2">
+              {!s.group && (
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => openSwap(s)}>
+                  <Handshake size={14} /> Solicitar troca
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="destructive"
+                className="flex-1"
+                disabled={respondingId === s.id}
+                onClick={() => setRecuse({ id: s.id, step: "confirm" })}
+              >
+                Recusar
+              </Button>
+            </div>
+          )}
+          {new Date(s.event_date!).getTime() > Date.now() && !s.group && s.status === "PENDING" && (
             <Button size="sm" variant="outline" className="mt-2 w-full" onClick={() => openSwap(s)}>
               <Handshake size={14} /> Solicitar troca
             </Button>
@@ -301,6 +334,32 @@ export function AgendaPage() {
             )}
             <Button className="w-full" onClick={requestSwap} disabled={swapBusy}>
               {swapBusy ? "Enviando…" : "Enviar solicitação"}
+            </Button>
+          </div>
+        )}
+      </Dialog>
+
+      <Dialog open={!!recuse} onClose={() => setRecuse(null)} title={recuse?.step === "notice" ? "Escala recusada" : "Tem certeza?"}>
+        {recuse?.step === "confirm" && (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Você não poderá participar deste culto.</p>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="outline" onClick={() => setRecuse(null)}>
+                Voltar
+              </Button>
+              <Button size="sm" variant="destructive" disabled={respondingId === recuse.id} onClick={confirmRecuse}>
+                Recusar
+              </Button>
+            </div>
+          </div>
+        )}
+        {recuse?.step === "notice" && (
+          <div className="space-y-4">
+            <p className="rounded-xl border border-yellow-400 bg-yellow-100 p-3 text-sm text-yellow-900 dark:border-yellow-700 dark:bg-yellow-950 dark:text-yellow-100">
+              Avise o líder no WhatsApp o motivo de não poder participar.
+            </p>
+            <Button size="sm" className="w-full" onClick={() => setRecuse(null)}>
+              Entendi
             </Button>
           </div>
         )}
