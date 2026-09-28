@@ -80,7 +80,7 @@ Evidência por task: `npm run typecheck` + `npm run build` + detector `node "C:\
 
 ## Checklist de conclusão
 
-- [ ] Task 1: StatusBadge + limpeza de notes (+ audit de consumers); smoke parcial
-- [ ] Task 2: rota `/events/teams` + AgendaPage (mapa + seção recolhível); smoke verde
-- [ ] Task 3: push de grupo + membro tardio + relatório; smoke verde; regressão 11 smokes
-- [ ] Task 4: typecheck/build/detector 0 + DOM check + push branch + resumo PT
+- [x] Task 1: StatusBadge + limpeza de notes (+ audit de consumers); smoke parcial
+- [x] Task 2: rota `/events/teams` + AgendaPage (mapa + seção recolhível); smoke verde
+- [x] Task 3: push de grupo + membro tardio + relatório; smoke verde; regressão 11 smokes
+- [x] Task 4: typecheck/build/detector 0 + DOM check + push branch + resumo PT
