@@ -106,13 +106,13 @@ for (const g of allGroups.filter((x) => String(x.name).startsWith("Smoke Time G"
 // --- usuários temporários ---
 let res = await req("/users", admin, {
   method: "POST",
-  body: JSON.stringify({ name: "Smoke Time Vol1", email: `smoke-time-vol1-${stamp}@montesiao.org`, password: "senha123", phone: `118${String(stamp).slice(-7)}1` }),
+  body: JSON.stringify({ name: "Smoke Time Vol1", email: `smoke-time-vol1-${stamp}@montesiao.org`, password: "senha123", phone: `119${String(stamp).slice(-7)}1` }),
 });
 const vol1 = await res.json();
 check("criar vol1", res.status === 201 && !!vol1.id, JSON.stringify(vol1));
 res = await req("/users", admin, {
   method: "POST",
-  body: JSON.stringify({ name: "Smoke Time Vol2", email: `smoke-time-vol2-${stamp}@montesiao.org`, password: "senha123", phone: `118${String(stamp).slice(-7)}2` }),
+  body: JSON.stringify({ name: "Smoke Time Vol2", email: `smoke-time-vol2-${stamp}@montesiao.org`, password: "senha123", phone: `119${String(stamp).slice(-7)}2` }),
 });
 const vol2 = await res.json();
 check("criar vol2", res.status === 201 && !!vol2.id, JSON.stringify(vol2));
@@ -654,12 +654,12 @@ for (const g of (await (await req("/voice/groups", louvor)).json()).filter((x) =
 }
 let res = await req("/users", admin, {
   method: "POST",
-  body: JSON.stringify({ name: "Smoke Time DomA", email: `smoke-time-dom-a-${stamp}@montesiao.org`, password: "senha123", phone: `117${String(stamp).slice(-7)}1` }),
+  body: JSON.stringify({ name: "Smoke Time DomA", email: `smoke-time-dom-a-${stamp}@montesiao.org`, password: "senha123", phone: `119${String(stamp).slice(-7)}1` }),
 });
 const volA = await res.json();
 res = await req("/users", admin, {
   method: "POST",
-  body: JSON.stringify({ name: "Smoke Time DomB", email: `smoke-time-dom-b-${stamp}@montesiao.org`, password: "senha123", phone: `117${String(stamp).slice(-7)}2` }),
+  body: JSON.stringify({ name: "Smoke Time DomB", email: `smoke-time-dom-b-${stamp}@montesiao.org`, password: "senha123", phone: `119${String(stamp).slice(-7)}2` }),
 });
 const volB = await res.json();
 if (!volA.id || !volB.id) { console.error("FALHA: usuarios temporarios", volA, volB); process.exit(1); }
