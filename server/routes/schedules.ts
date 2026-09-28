@@ -189,7 +189,7 @@ scheduleRoutes.patch("/:id", requireRole("ADMIN", "LEADER"), async (c) => {
     );
     await c.env.DB.batch([
       c.env.DB.prepare("DELETE FROM schedule_group_members WHERE schedule_id = ?").bind(id),
-      c.env.DB.prepare("UPDATE schedules SET group_id = ?, user_id = NULL, status = 'PENDING' WHERE id = ?").bind(
+      c.env.DB.prepare("UPDATE schedules SET group_id = ?, user_id = NULL, status = 'PENDING', notes = NULL WHERE id = ?").bind(
         Number(group_id),
         id,
       ),
@@ -203,7 +203,7 @@ scheduleRoutes.patch("/:id", requireRole("ADMIN", "LEADER"), async (c) => {
     if (!ok) return c.json({ error: "Voluntário indisponível ou já escalado neste evento" }, 400);
     await c.env.DB.batch([
       c.env.DB.prepare("DELETE FROM schedule_group_members WHERE schedule_id = ?").bind(id),
-      c.env.DB.prepare("UPDATE schedules SET user_id = ?, group_id = NULL, status = 'PENDING' WHERE id = ?").bind(user_id, id),
+      c.env.DB.prepare("UPDATE schedules SET user_id = ?, group_id = NULL, status = 'PENDING', notes = NULL WHERE id = ?").bind(user_id, id),
     ]);
     const ev = await c.env.DB.prepare("SELECT title, event_date FROM events WHERE id = ?")
       .bind(schedule.event_id)

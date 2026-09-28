@@ -7,15 +7,15 @@ export function statusVariant(status: string): "success" | "warning" | "destruct
   return "warning";
 }
 
-export function statusLabel(schedule: Pick<Schedule, "status" | "user_id">): string {
-  if (!schedule.user_id) return "Vago";
+export function statusLabel(schedule: Pick<Schedule, "status" | "user_id" | "group">): string {
+  if (!schedule.user_id && !schedule.group) return "Vago";
   if (schedule.status === "CONFIRMED") return "Confirmado";
   if (schedule.status === "DECLINED") return "Recusado";
   return "Pendente";
 }
 
-export function StatusBadge({ schedule }: { schedule: Pick<Schedule, "status" | "user_id"> }) {
+export function StatusBadge({ schedule }: { schedule: Pick<Schedule, "status" | "user_id" | "group"> }) {
   const label = statusLabel(schedule);
-  const variant = !schedule.user_id ? "muted" : statusVariant(schedule.status);
+  const variant = !schedule.user_id && !schedule.group ? "muted" : statusVariant(schedule.status);
   return <Badge variant={variant}>{label}</Badge>;
 }
