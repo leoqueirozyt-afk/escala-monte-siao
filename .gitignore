@@ -4,6 +4,7 @@ dist
 .dev.vars
 *.local
 *.tsbuildinfo
-.impeccable/live
+.impeccable/
+docs/superpowers/
 
 .superpowers/
