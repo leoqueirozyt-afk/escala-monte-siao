@@ -3,11 +3,12 @@ import { ChevronDown, Handshake, MapPin, UserSearch, Users } from "lucide-react"
 import { api, ApiError } from "../lib/api";
 import { formatDateTime } from "../lib/utils";
 import { useAsyncData } from "../lib/use-async-data";
+import { useAuth } from "../lib/auth";
 import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
 import { Badge } from "../components/ui/badge";
 import { Dialog } from "../components/ui/dialog";
-import { Field } from "../components/ui/input";
+import { Field, Select } from "../components/ui/input";
 import { StatusBadge } from "../components/StatusBadge";
 import { PersonAvatar } from "../components/ui/person-avatar";
 import { toast } from "../components/ui/toast";
@@ -22,6 +23,8 @@ export function AgendaPage() {
   const [swapBusy, setSwapBusy] = useState(false);
   const [openTeam, setOpenTeam] = useState<Record<number, boolean>>({});
   const [period, setPeriod] = useState<"month" | "all">("month");
+  const [ministry, setMinistry] = useState("");
+  const { ministries } = useAuth();
   const [recuse, setRecuse] = useState<{ id: number; step: "confirm" | "notice" } | null>(null);
 
   const { data: schedules = [], status, error, reload } = useAsyncData<Schedule[]>(
@@ -103,7 +106,7 @@ export function AgendaPage() {
     const now = new Date();
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   };
-  const visible = schedules.filter(inPeriod);
+  const visible = schedules.filter((s) => inPeriod(s) && (!ministry || s.ministry_name === ministry));
   const upcoming = visible.filter((s) => new Date(s.event_date!).getTime() > Date.now());
   const past = visible.filter((s) => new Date(s.event_date!).getTime() <= Date.now());
 
@@ -227,27 +230,44 @@ export function AgendaPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold">Minha Agenda</h1>
-        <div className="flex rounded-lg border p-0.5" role="group" aria-label="Período">
-          <button
-            type="button"
-            aria-pressed={period === "month"}
-            onClick={() => setPeriod("month")}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-              period === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            Este mês
-          </button>
-          <button
-            type="button"
-            aria-pressed={period === "all"}
-            onClick={() => setPeriod("all")}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
-              period === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            Todas
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex rounded-lg border p-0.5" role="group" aria-label="Período">
+            <button
+              type="button"
+              aria-pressed={period === "month"}
+              onClick={() => setPeriod("month")}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                period === "month" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Este mês
+            </button>
+            <button
+              type="button"
+              aria-pressed={period === "all"}
+              onClick={() => setPeriod("all")}
+              className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                period === "all" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Todas
+            </button>
+          </div>
+          {ministries.length > 1 && (
+            <Select
+              aria-label="Ministério"
+              className="h-9 w-auto min-w-40 rounded-lg"
+              value={ministry}
+              onChange={(e) => setMinistry(e.target.value)}
+            >
+              <option value="">Todos os ministérios</option>
+              {ministries.map((m) => (
+                <option key={m.id} value={m.name}>
+                  {m.name}
+                </option>
+              ))}
+            </Select>
+          )}
         </div>
       </div>
 
