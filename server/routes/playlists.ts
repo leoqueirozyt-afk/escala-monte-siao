@@ -67,11 +67,26 @@ playlistRoutes.get("/:eventId", async (c) => {
   const playlist = await c.env.DB.prepare("SELECT id, event_id, created_by, created_at FROM playlists WHERE event_id = ?")
     .bind(eventId)
     .first();
-  if (!playlist) return c.json({ event, playlist: null, songs: [] });
+  if (!playlist) return c.json({ event, playlist: null, songs: [], notes: [] });
   const songs = await c.env.DB.prepare("SELECT * FROM playlist_songs WHERE playlist_id = ? ORDER BY position ASC")
     .bind(Number(playlist.id))
     .all();
-  return c.json({ event, playlist, songs: songs.results });
+  const notes = await c.env.DB.prepare(
+    `SELECT n.id, n.song_id, n.author_id, n.body, n.mentions, n.seconds, n.created_at,
+            u.name AS author_name, u.avatar_url AS author_avatar
+     FROM playlist_song_notes n
+     JOIN users u ON u.id = n.author_id
+     WHERE n.song_id IN (SELECT id FROM playlist_songs WHERE playlist_id = ?)
+     ORDER BY n.created_at ASC, n.id ASC`,
+  )
+    .bind(Number(playlist.id))
+    .all();
+  const parsed = (notes.results as any[]).map((n) => ({
+    ...n,
+    seconds: n.seconds == null ? null : Number(n.seconds),
+    mentions: (() => { try { return n.mentions ? JSON.parse(n.mentions) : null; } catch { return null; } })(),
+  }));
+  return c.json({ event, playlist, songs: songs.results, notes: parsed });
 });
 
 playlistRoutes.put("/:eventId", async (c) => {
@@ -121,6 +136,45 @@ playlistRoutes.put("/:eventId", async (c) => {
   );
   await c.env.DB.batch(inserts);
   return c.json({ id: playlistId, ok: true });
+});
+
+playlistRoutes.post("/songs/:songId/notes", async (c) => {
+  const user = c.get("user");
+  if (!(await canManage(c.env.DB, user))) return c.json({ error: "Sem permissão" }, 403);
+  const songId = Number(c.req.param("songId"));
+  const song = await c.env.DB.prepare("SELECT id FROM playlist_songs WHERE id = ?").bind(songId).first();
+  if (!song) return c.json({ error: "Música não encontrada" }, 404);
+  const body = await c.req.json().catch(() => ({}));
+  const text = String((body as any).body ?? "").trim();
+  if (!text) return c.json({ error: "Anotação vazia" }, 400);
+  const rawSec = (body as any).seconds;
+  const seconds = rawSec == null || rawSec === "" ? null : Number(rawSec);
+  if (seconds !== null && (!Number.isInteger(seconds) || seconds < 0 || seconds > 359999)) {
+    return c.json({ error: "Minutagem inválida" }, 400);
+  }
+  const mentions = Array.isArray((body as any).mentions)
+    ? JSON.stringify((body as any).mentions.map(Number).filter((n: number) => Number.isFinite(n)))
+    : null;
+  const r = await c.env.DB.prepare(
+    "INSERT INTO playlist_song_notes (song_id, author_id, body, mentions, seconds) VALUES (?, ?, ?, ?, ?)",
+  ).bind(songId, user.sub, text, mentions, seconds).run();
+  const note = await c.env.DB.prepare(
+    `SELECT n.id, n.song_id, n.author_id, n.body, n.mentions, n.seconds, n.created_at,
+            u.name AS author_name, u.avatar_url AS author_avatar
+     FROM playlist_song_notes n JOIN users u ON u.id = n.author_id WHERE n.id = ?`,
+  ).bind(Number(r.meta.last_row_id)).first();
+  const out: any = { ...note, seconds: note?.seconds == null ? null : Number(note.seconds), mentions: mentions ? JSON.parse(mentions) : null };
+  return c.json(out, 201);
+});
+
+playlistRoutes.delete("/notes/:noteId", async (c) => {
+  const user = c.get("user");
+  if (!(await canManage(c.env.DB, user))) return c.json({ error: "Sem permissão" }, 403);
+  const noteId = Number(c.req.param("noteId"));
+  const note = await c.env.DB.prepare("SELECT id FROM playlist_song_notes WHERE id = ?").bind(noteId).first();
+  if (!note) return c.json({ error: "Anotação não encontrada" }, 404);
+  await c.env.DB.prepare("DELETE FROM playlist_song_notes WHERE id = ?").bind(noteId).run();
+  return c.json({ ok: true });
 });
 
 playlistRoutes.delete("/:eventId", async (c) => {
