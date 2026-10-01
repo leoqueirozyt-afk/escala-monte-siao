@@ -26,6 +26,7 @@ import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-stat
 import type { PlaylistDetail, PlaylistSong } from "../../shared/types";
 
 interface DraftSong {
+  id?: number;
   title: string;
   key: string;
   youtube_url: string;
@@ -66,6 +67,7 @@ export function PlaylistDetailPage() {
   const startEdit = () => {
     setDrafts(
       songs.map((s) => ({
+        id: s.id,
         title: s.title,
         key: s.key ?? "",
         youtube_url: s.youtube_url,

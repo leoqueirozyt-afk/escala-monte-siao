@@ -115,26 +115,45 @@ playlistRoutes.put("/:eventId", async (c) => {
   let playlistId: number;
   if (existing) {
     playlistId = Number(existing.id);
-    await c.env.DB.prepare("DELETE FROM playlist_songs WHERE playlist_id = ?").bind(playlistId).run();
   } else {
     const r = await c.env.DB.prepare("INSERT INTO playlists (event_id, created_by) VALUES (?, ?)")
       .bind(eventId, user.sub)
       .run();
     playlistId = Number(r.meta.last_row_id);
   }
-  const inserts = songs.map((s: any, i: number) =>
-    c.env.DB.prepare(
-      "INSERT INTO playlist_songs (playlist_id, title, key, youtube_url, note, position) VALUES (?, ?, ?, ?, ?, ?)",
-    ).bind(
-      playlistId,
+  const current = await c.env.DB.prepare("SELECT id FROM playlist_songs WHERE playlist_id = ?")
+    .bind(playlistId)
+    .all<any>();
+  const currentIds = new Set<number>(current.results.map((r: any) => Number(r.id)));
+  const seen = new Set<number>();
+  for (const s of songs) {
+    if (s.id == null) continue;
+    const id = Number(s.id);
+    if (!currentIds.has(id) || seen.has(id)) {
+      return c.json({ error: "Música inválida na playlist" }, 400);
+    }
+    seen.add(id);
+  }
+  const statements = songs.map((s: any, i: number) => {
+    const vals = [
       String(s.title).trim(),
       s.key ? String(s.key).trim() : null,
       String(s.youtube_url).trim(),
       s.note ? String(s.note).trim() : null,
       i,
-    ),
-  );
-  await c.env.DB.batch(inserts);
+    ];
+    return s.id == null
+      ? c.env.DB.prepare(
+          "INSERT INTO playlist_songs (playlist_id, title, key, youtube_url, note, position) VALUES (?, ?, ?, ?, ?, ?)",
+        ).bind(playlistId, ...vals)
+      : c.env.DB.prepare(
+          "UPDATE playlist_songs SET title = ?, key = ?, youtube_url = ?, note = ?, position = ? WHERE id = ? AND playlist_id = ?",
+        ).bind(...vals, Number(s.id), playlistId);
+  });
+  for (const id of currentIds) {
+    if (!seen.has(id)) statements.push(c.env.DB.prepare("DELETE FROM playlist_songs WHERE id = ?").bind(id));
+  }
+  await c.env.DB.batch(statements);
   return c.json({ id: playlistId, ok: true });
 });
 
