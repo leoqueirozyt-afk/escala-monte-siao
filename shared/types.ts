@@ -208,8 +208,21 @@ export interface PlaylistSong {
   position: number;
 }
 
+export interface SongNote {
+  id: number;
+  song_id: number;
+  author_id: number;
+  body: string;
+  mentions: number[] | null;
+  seconds: number | null;
+  created_at: string;
+  author_name: string;
+  author_avatar: string | null;
+}
+
 export interface PlaylistDetail {
   event: PlaylistEvent;
   playlist: { id: number; event_id: number; created_by: number; created_at: string } | null;
   songs: PlaylistSong[];
+  notes: SongNote[];
 }

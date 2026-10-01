@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -23,9 +23,14 @@ import { Input, Field } from "../components/ui/input";
 import { ConfirmDialog } from "../components/ui/confirm-dialog";
 import { toast } from "../components/ui/toast";
 import { ErrorState, EmptyState, ListSkeleton } from "../components/ui/load-state";
-import type { PlaylistDetail, PlaylistSong } from "../../shared/types";
+import { VideoPlayer } from "../components/playlist/video-player";
+import { NotesFeed } from "../components/playlist/notes-feed";
+import { NoteComposer } from "../components/playlist/note-composer";
+import { mmss } from "../lib/youtube-player";
+import type { PlaylistDetail, PlaylistSong, SongNote } from "../../shared/types";
 
 interface DraftSong {
+  id?: number;
   title: string;
   key: string;
   youtube_url: string;
@@ -52,6 +57,7 @@ export function PlaylistDetailPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const playerRef = useRef<any>(null);
 
   if (status === "loading") return <ListSkeleton rows={4} />;
   if (status === "error" && error) return <ErrorState message={error} onRetry={reload} />;
@@ -63,9 +69,33 @@ export function PlaylistDetailPage() {
   const activeSong: PlaylistSong | undefined = songs[activeIdx] ?? songs[0];
   const activeId = activeSong ? extractYouTubeId(activeSong.youtube_url) : null;
 
+  const seekVideo = (sec: number) => {
+    const p = playerRef.current;
+    if (p && typeof p.seekTo === "function") {
+      p.seekTo(sec, true);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (activeId) {
+      window.open(`https://www.youtube.com/watch?v=${activeId}&t=${sec}s`, "_blank", "noopener");
+    }
+  };
+
+  const grabCurrentTime = (): string | null => {
+    const p = playerRef.current;
+    if (!p || typeof p.getCurrentTime !== "function") return null;
+    return mmss(p.getCurrentTime());
+  };
+
+  const notesBySong = new Map<number, SongNote[]>();
+  for (const n of data.notes ?? []) {
+    const arr = notesBySong.get(n.song_id) ?? [];
+    arr.push(n);
+    notesBySong.set(n.song_id, arr);
+  }
+
   const startEdit = () => {
     setDrafts(
       songs.map((s) => ({
+        id: s.id,
         title: s.title,
         key: s.key ?? "",
         youtube_url: s.youtube_url,
@@ -181,15 +211,13 @@ export function PlaylistDetailPage() {
 
       {!editing && activeId && (
         <div className="space-y-2">
-          <div className="aspect-video w-full overflow-hidden rounded-xl border bg-black">
-            <iframe
-              className="h-full w-full"
-              src={`https://www.youtube-nocookie.com/embed/${activeId}`}
-              title={activeSong?.title ?? "Vídeo do YouTube"}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
+          <VideoPlayer
+            videoId={activeId}
+            title={activeSong?.title ?? "Vídeo do YouTube"}
+            onReady={(p) => {
+              playerRef.current = p;
+            }}
+          />
           <a
             href={`https://www.youtube.com/watch?v=${activeId}`}
             target="_blank"
@@ -203,24 +231,50 @@ export function PlaylistDetailPage() {
 
       {!editing && playlist && songs.length > 0 && (
         <div className="space-y-2">
-          {songs.map((s, i) => (
-            <div
-              key={s.id}
-              className={`flex items-center gap-3 rounded-xl border p-3 ${
-                i === activeIdx ? "border-primary bg-primary/5" : "bg-card"
-              }`}
-            >
-              <span className="w-5 text-center text-sm text-muted-foreground">{i + 1}</span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{s.title}</p>
-                {s.note && <p className="truncate text-xs text-muted-foreground">{s.note}</p>}
+          {songs.map((s, i) =>
+            i === activeIdx ? (
+              <div key={s.id} className="space-y-1 rounded-xl border border-primary bg-primary/5 p-3">
+                <div className="flex items-center gap-3">
+                  <span className="w-5 text-center text-sm text-muted-foreground">{i + 1}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{s.title}</p>
+                    {s.note && <p className="truncate text-xs text-muted-foreground">{s.note}</p>}
+                  </div>
+                  {s.key && <Badge>{s.key}</Badge>}
+                  <Button size="sm" onClick={() => setActiveIdx(i)}>
+                    <Play size={14} /> Tocando
+                  </Button>
+                </div>
+                <NotesFeed
+                  notes={notesBySong.get(s.id) ?? []}
+                  canDelete={canManage}
+                  onSeek={seekVideo}
+                  onReload={reload}
+                  composer={
+                    canManage && (
+                      <NoteComposer
+                        songId={s.id}
+                        grabCurrentTime={grabCurrentTime}
+                        onCreated={reload}
+                      />
+                    )
+                  }
+                />
               </div>
-              {s.key && <Badge>{s.key}</Badge>}
-              <Button size="sm" variant={i === activeIdx ? "default" : "outline"} onClick={() => setActiveIdx(i)}>
-                <Play size={14} /> Tocar
-              </Button>
-            </div>
-          ))}
+            ) : (
+              <div key={s.id} className="flex items-center gap-3 rounded-xl border bg-card p-3">
+                <span className="w-5 text-center text-sm text-muted-foreground">{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{s.title}</p>
+                  {s.note && <p className="truncate text-xs text-muted-foreground">{s.note}</p>}
+                </div>
+                {s.key && <Badge>{s.key}</Badge>}
+                <Button size="sm" variant="outline" onClick={() => setActiveIdx(i)}>
+                  <Play size={14} /> Tocar
+                </Button>
+              </div>
+            ),
+          )}
         </div>
       )}
 
